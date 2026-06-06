@@ -11,11 +11,28 @@ type ProfilesFile struct {
 	Profiles map[string]Profile `json:"profiles"`
 }
 
-var SupportedEnvKeys = map[string]struct{}{
-	"ANTHROPIC_AUTH_TOKEN":           {},
-	"ANTHROPIC_BASE_URL":             {},
-	"ANTHROPIC_MODEL":                {},
-	"ANTHROPIC_DEFAULT_OPUS_MODEL":   {},
-	"ANTHROPIC_DEFAULT_SONNET_MODEL": {},
-	"ANTHROPIC_DEFAULT_HAIKU_MODEL":  {},
+const OfficialProfileName = "official"
+
+var ManagedEnvKeys = []string{
+	"ANTHROPIC_AUTH_TOKEN",
+	"ANTHROPIC_BASE_URL",
+	"ANTHROPIC_MODEL",
+	"ANTHROPIC_DEFAULT_OPUS_MODEL",
+	"ANTHROPIC_DEFAULT_SONNET_MODEL",
+	"ANTHROPIC_DEFAULT_HAIKU_MODEL",
+	"CLAUDE_CODE_SUBAGENT_MODEL",
+	"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+	"CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK",
+}
+
+var SupportedEnvKeys = func() map[string]struct{} {
+	keys := make(map[string]struct{}, len(ManagedEnvKeys))
+	for _, key := range ManagedEnvKeys {
+		keys[key] = struct{}{}
+	}
+	return keys
+}()
+
+func IsOfficialName(name string) bool {
+	return name == OfficialProfileName
 }

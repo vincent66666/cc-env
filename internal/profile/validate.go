@@ -14,6 +14,9 @@ func ValidateProfile(name string, profile Profile) error {
 	if strings.TrimSpace(name) == "" {
 		return fmt.Errorf("必须提供配置名称")
 	}
+	if IsOfficialName(name) {
+		return fmt.Errorf("配置 %q 是内置配置名称，不能作为普通 profile", name)
+	}
 
 	if len(profile.Env) == 0 {
 		return fmt.Errorf("配置 %q 缺少 env", name)

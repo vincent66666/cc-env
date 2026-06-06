@@ -1,6 +1,10 @@
 package cli
 
-import "strings"
+import (
+	"strings"
+
+	"cc-switch/internal/profile"
+)
 
 type listMenuMode int
 
@@ -35,6 +39,11 @@ var listMenuCurrentActions = []listMenuAction{
 	listMenuActionBack,
 }
 
+var listMenuOfficialActions = []listMenuAction{
+	listMenuActionSwitch,
+	listMenuActionBack,
+}
+
 type listMenuConfirmAction string
 
 const (
@@ -58,6 +67,9 @@ type listMenu struct {
 }
 
 func (m listMenu) actions() []listMenuAction {
+	if profile.IsOfficialName(m.selectedProfile()) {
+		return listMenuOfficialActions
+	}
 	if m.selectedProfile() == m.currentName {
 		return listMenuCurrentActions
 	}
@@ -230,6 +242,9 @@ func (m listMenu) shortcutHint() string {
 
 func (m listMenu) removeHintLabel() string {
 	selected := m.selectedProfile()
+	if profile.IsOfficialName(selected) {
+		return "d 内置不可用"
+	}
 	if selected != "" && selected == m.currentName {
 		return "d 当前不可用"
 	}

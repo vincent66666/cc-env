@@ -7,19 +7,16 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"os/exec"
 	"sort"
 	"strings"
-	"time"
 
 	"cc-switch/internal/output"
 	"cc-switch/internal/profile"
-	"cc-switch/internal/settings"
 )
 
 type Paths struct {
 	Profiles string
-	Settings string
 }
 
 type selectorAction int
@@ -52,6 +49,7 @@ var (
 		return stat.Mode()&os.ModeCharDevice != 0
 	}
 	startInteractiveSession = startInteractiveTerminalSession
+	launchClaude            = runClaude
 )
 
 func selectorInteractive(stdout io.Writer) bool {
@@ -105,14 +103,8 @@ func defaultPaths() Paths {
 		profilesPath = os.ExpandEnv("$HOME/.claude/cc-switch/profiles.json")
 	}
 
-	settingsPath := os.Getenv("CC_SWITCH_SETTINGS_PATH")
-	if settingsPath == "" {
-		settingsPath = os.ExpandEnv("$HOME/.claude/settings.json")
-	}
-
 	return Paths{
 		Profiles: profilesPath,
-		Settings: settingsPath,
 	}
 }
 
@@ -132,6 +124,11 @@ func runCurrent(paths Paths, stdout, stderr io.Writer) int {
 		return 0
 	}
 
+	if profile.IsOfficialName(data.Current) {
+		_, _ = fmt.Fprintf(stdout, "%s\n", data.Current)
+		return 0
+	}
+
 	if _, ok := data.Profiles[data.Current]; !ok {
 		_, _ = io.WriteString(stdout, "未知\n")
 		return 0
@@ -148,7 +145,7 @@ func runList(paths Paths, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	names := profileNames(data.Profiles)
+	names := modeNames(data.Profiles)
 	if selectorInteractive(stdout) && len(names) > 0 {
 		return runInteractiveList(paths, listMenu{
 			profiles:     prioritizeCurrentProfile(names, data.Current),
@@ -158,7 +155,9 @@ func runList(paths Paths, stdout, stderr io.Writer) int {
 	}
 
 	currentDisplay := ""
-	if currentProfile, ok := data.Profiles[data.Current]; ok {
+	if profile.IsOfficialName(data.Current) {
+		currentDisplay = profileDisplayName(data.Current, officialProfileDescription())
+	} else if currentProfile, ok := data.Profiles[data.Current]; ok {
 		currentDisplay = profileDisplayName(data.Current, currentProfile.Description)
 	}
 
@@ -176,7 +175,7 @@ func runStatus(paths Paths, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	currentProfile, ok := data.Profiles[data.Current]
+	currentProfile, currentDisplay, currentBaseURL, currentModel, ok := currentStatus(data)
 	if !ok {
 		_, _ = io.WriteString(stdout, "当前配置：未知\n")
 		return 0
@@ -186,9 +185,9 @@ func runStatus(paths Paths, stdout, stderr io.Writer) int {
 	if selectorInteractive(stdout) && len(names) > 0 {
 		selector := statusSelector{
 			currentName:        data.Current,
-			currentDescription: currentProfile.Description,
-			baseURL:            currentProfile.Env[profile.EnvBaseURL],
-			model:              currentProfile.Env["ANTHROPIC_MODEL"],
+			currentDescription: currentDescription(data.Current, currentProfile),
+			baseURL:            currentBaseURL,
+			model:              currentModel,
 			names:              names,
 			descriptions:       profileDescriptions(data.Profiles),
 		}
@@ -197,10 +196,36 @@ func runStatus(paths Paths, stdout, stderr io.Writer) int {
 
 	return output.RenderStatus(
 		stdout,
-		profileDisplayName(data.Current, currentProfile.Description),
+		currentDisplay,
 		currentProfile,
 		displayNamesForProfiles(data.Profiles, names),
 	)
+}
+
+func currentStatus(data profile.ProfilesFile) (profile.Profile, string, string, string, bool) {
+	if profile.IsOfficialName(data.Current) {
+		currentProfile := profile.Profile{
+			Description: officialProfileDescription(),
+			Env: map[string]string{
+				profile.EnvBaseURL: "官方登录态",
+			},
+		}
+		return currentProfile,
+			profileDisplayName(data.Current, currentProfile.Description),
+			"官方登录态",
+			"-",
+			true
+	}
+
+	currentProfile, ok := data.Profiles[data.Current]
+	if !ok {
+		return profile.Profile{}, "", "", "", false
+	}
+	return currentProfile,
+		profileDisplayName(data.Current, currentProfile.Description),
+		currentProfile.Env[profile.EnvBaseURL],
+		currentProfile.Env["ANTHROPIC_MODEL"],
+		true
 }
 
 func shouldRenderUnknownForProfileLoadError(err error) bool {
@@ -212,122 +237,115 @@ func shouldRenderUnknownForProfileLoadError(err error) bool {
 }
 
 func runUse(paths Paths, args []string, stdout, stderr io.Writer) int {
+	target, claudeArgs := parseUseArgs(args)
+	return switchProfile(paths, target, claudeArgs, stderr)
+}
+
+func parseUseArgs(args []string) (string, []string) {
 	if len(args) == 0 {
-		_, _ = io.WriteString(stderr, "必须提供配置名称\n")
-		return 1
+		return "", nil
+	}
+	if args[0] == "--" {
+		return "", args[1:]
 	}
 
 	target := normalizeProfileName(args[0])
-	if target == "" {
-		_, _ = io.WriteString(stderr, "必须提供配置名称\n")
-		return 1
+	if len(args) > 1 && args[1] == "--" {
+		return target, args[2:]
 	}
-
-	return switchProfile(paths, target, stdout, stderr)
+	return target, args[1:]
 }
 
-func switchProfile(paths Paths, target string, stdout, stderr io.Writer) int {
+func switchProfile(paths Paths, target string, claudeArgs []string, stderr io.Writer) int {
 	data, err := profile.LoadForList(paths.Profiles)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "加载配置失败：%v\n", err)
 		return 1
 	}
 
-	targetProfile, ok := data.Profiles[target]
-	if !ok {
-		_, _ = fmt.Fprintf(stderr, "未找到配置 %q\n", target)
-		return 1
+	if target == "" {
+		target = data.Current
+	}
+	if target == "" {
+		target = profile.OfficialProfileName
 	}
 
-	if err := profile.ValidateProfile(target, targetProfile); err != nil {
-		_, _ = fmt.Fprintf(stderr, "%s\n", formatCLIError(err))
-		return 1
-	}
+	var targetEnv map[string]string
+	if !profile.IsOfficialName(target) {
+		targetProfile, ok := data.Profiles[target]
+		if !ok {
+			_, _ = fmt.Fprintf(stderr, "未找到配置 %q\n", target)
+			return 1
+		}
 
-	settingsSnapshot, err := readSettingsSnapshot(paths.Settings)
-	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "读取当前 settings.json 失败：%v\n", err)
-		return 1
-	}
-
-	if err := settings.WriteEnv(paths.Settings, targetProfile.Env, time.Now); err != nil {
-		_, _ = fmt.Fprintf(stderr, "写入 settings.json 的 env 失败：%v\n", err)
-		return 1
+		if err := profile.ValidateProfile(target, targetProfile); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s\n", formatCLIError(err))
+			return 1
+		}
+		targetEnv = targetProfile.Env
 	}
 
 	data.Current = target
 	if err := profile.Save(paths.Profiles, data); err != nil {
-		if restoreErr := restoreSettingsSnapshot(paths.Settings, settingsSnapshot); restoreErr != nil {
-			_, _ = fmt.Fprintf(stderr, "更新当前配置失败：%v；回滚 settings.json 失败：%v\n", err, restoreErr)
-			return 1
-		}
 		_, _ = fmt.Fprintf(stderr, "更新当前配置失败：%v\n", err)
 		return 1
 	}
 
-	_, _ = fmt.Fprintf(stdout, "已切换到配置：%s\n", target)
+	env := buildClaudeEnv(os.Environ(), targetEnv)
+	if err := launchClaude(claudeArgs, env); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return exitErr.ExitCode()
+		}
+		_, _ = fmt.Fprintf(stderr, "启动 claude 失败：%v\n", err)
+		return 1
+	}
 	return 0
 }
 
-type settingsSnapshot struct {
-	exists  bool
-	content []byte
+func runClaude(args []string, env []string) error {
+	command := exec.Command("claude", args...)
+	command.Env = env
+	command.Stdin = os.Stdin
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	return command.Run()
 }
 
-func readSettingsSnapshot(path string) (settingsSnapshot, error) {
-	content, err := os.ReadFile(path)
-	if err == nil {
-		return settingsSnapshot{
-			exists:  true,
-			content: content,
-		}, nil
+func buildClaudeEnv(base []string, overlay map[string]string) []string {
+	managed := map[string]struct{}{}
+	for _, key := range profile.ManagedEnvKeys {
+		managed[key] = struct{}{}
 	}
 
-	if os.IsNotExist(err) {
-		return settingsSnapshot{}, nil
-	}
-
-	return settingsSnapshot{}, err
-}
-
-func restoreSettingsSnapshot(path string, snapshot settingsSnapshot) error {
-	if !snapshot.exists {
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			return err
+	values := map[string]string{}
+	order := []string{}
+	for _, item := range base {
+		key, value, ok := strings.Cut(item, "=")
+		if !ok {
+			continue
 		}
-		return nil
+		if _, isManaged := managed[key]; isManaged {
+			continue
+		}
+		if _, seen := values[key]; !seen {
+			order = append(order, key)
+		}
+		values[key] = value
 	}
 
-	return writeFileAtomically(path, snapshot.content, ".settings-restore-*.json")
-}
-
-func writeFileAtomically(path string, content []byte, pattern string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
+	env := make([]string, 0, len(order)+len(overlay))
+	for _, key := range order {
+		env = append(env, key+"="+values[key])
 	}
-
-	tempFile, err := os.CreateTemp(filepath.Dir(path), pattern)
-	if err != nil {
-		return err
+	for _, key := range profile.ManagedEnvKeys {
+		value := strings.TrimSpace(overlay[key])
+		if value == "" {
+			continue
+		}
+		env = append(env, key+"="+value)
 	}
-
-	tempPath := tempFile.Name()
-	if _, err := tempFile.Write(content); err != nil {
-		tempFile.Close()
-		_ = os.Remove(tempPath)
-		return err
-	}
-	if err := tempFile.Close(); err != nil {
-		_ = os.Remove(tempPath)
-		return err
-	}
-
-	if err := os.Rename(tempPath, path); err != nil {
-		_ = os.Remove(tempPath)
-		return err
-	}
-
-	return nil
+	return env
 }
 
 func runInteractiveStatus(paths Paths, selector statusSelector, stdout, stderr io.Writer) int {
@@ -365,7 +383,7 @@ func runInteractiveStatus(paths Paths, selector statusSelector, stdout, stderr i
 			selector.moveDown()
 		case selectorActionEnter:
 			closeInteractive()
-			return switchProfile(paths, selector.selectedName(), stdout, stderr)
+			return switchProfile(paths, selector.selectedName(), nil, stderr)
 		case selectorActionQuit:
 			return 0
 		}
@@ -413,7 +431,7 @@ func runInteractiveList(paths Paths, menu listMenu, stdout, stderr io.Writer) in
 			if menu.mode == listMenuModeProfiles {
 				if menuHasMissingCurrentProfile(menu) {
 					closeInteractive()
-					return switchProfile(paths, menu.selectedProfile(), stdout, stderr)
+					return switchProfile(paths, menu.selectedProfile(), nil, stderr)
 				}
 				menu.enterActions()
 				continue
@@ -481,11 +499,11 @@ func executeListAction(
 			if *closeInteractive != nil {
 				(*closeInteractive)()
 			}
-			return switchProfile(paths, selected, stdout, stderr), true
+			return switchProfile(paths, selected, nil, stderr), true
 		}
 	case listMenuActionEdit:
 		selected := menu.selectedProfile()
-		if selected == "" {
+		if selected == "" || profile.IsOfficialName(selected) {
 			return 0, false
 		}
 		if *closeInteractive != nil {
@@ -500,7 +518,7 @@ func executeListAction(
 		return resumeListSession(paths, menu, stdinFile, stdout, stderr, closeInteractive, selected, menu.index)
 	case listMenuActionRename:
 		selected := menu.selectedProfile()
-		if selected == "" {
+		if selected == "" || profile.IsOfficialName(selected) {
 			return 0, false
 		}
 		selectedIndex := menu.index
@@ -523,7 +541,7 @@ func executeListAction(
 		return resumeListSession(paths, menu, stdinFile, stdout, stderr, closeInteractive, newName, selectedIndex)
 	case listMenuActionRemove:
 		selected := menu.selectedProfile()
-		if selected == "" || selected == menu.currentName {
+		if selected == "" || selected == menu.currentName || profile.IsOfficialName(selected) {
 			return 0, false
 		}
 		menu.enterDeleteConfirm()
@@ -688,9 +706,16 @@ func profileNames(profiles map[string]profile.Profile) []string {
 	return names
 }
 
+func modeNames(profiles map[string]profile.Profile) []string {
+	names := make([]string, 0, len(profiles)+1)
+	names = append(names, profileNames(profiles)...)
+	names = append(names, profile.OfficialProfileName)
+	return names
+}
+
 func availableNames(profiles map[string]profile.Profile, current string) []string {
 	names := make([]string, 0, len(profiles))
-	for _, name := range profileNames(profiles) {
+	for _, name := range modeNames(profiles) {
 		if name == current {
 			continue
 		}
@@ -702,6 +727,10 @@ func availableNames(profiles map[string]profile.Profile, current string) []strin
 func displayNamesForProfiles(profiles map[string]profile.Profile, names []string) []string {
 	displayNames := make([]string, 0, len(names))
 	for _, name := range names {
+		if profile.IsOfficialName(name) {
+			displayNames = append(displayNames, profileDisplayName(name, officialProfileDescription()))
+			continue
+		}
 		displayNames = append(displayNames, profileDisplayName(name, profiles[name].Description))
 	}
 	return displayNames
@@ -729,7 +758,19 @@ func profileDescriptions(profiles map[string]profile.Profile) map[string]string 
 	for name, item := range profiles {
 		descriptions[name] = item.Description
 	}
+	descriptions[profile.OfficialProfileName] = officialProfileDescription()
 	return descriptions
+}
+
+func currentDescription(name string, currentProfile profile.Profile) string {
+	if profile.IsOfficialName(name) {
+		return officialProfileDescription()
+	}
+	return currentProfile.Description
+}
+
+func officialProfileDescription() string {
+	return "官方登录态"
 }
 
 func menuHasMissingCurrentProfile(menu listMenu) bool {
@@ -747,13 +788,16 @@ func menuHasMissingCurrentProfile(menu listMenu) bool {
 }
 
 type profileFlags struct {
-	description   string
-	token         string
-	baseURL       string
-	model         string
-	defaultOpus   string
-	defaultSonnet string
-	defaultHaiku  string
+	description                 string
+	token                       string
+	baseURL                     string
+	model                       string
+	defaultOpus                 string
+	defaultSonnet               string
+	defaultHaiku                string
+	subagentModel               string
+	disableNonessentialTraffic  bool
+	disableNonstreamingFallback bool
 }
 
 func runAdd(paths Paths, args []string, stdout, stderr io.Writer) int {
@@ -787,6 +831,10 @@ func runAdd(paths Paths, args []string, stdout, stderr io.Writer) int {
 
 	if strings.TrimSpace(name) == "" {
 		_, _ = io.WriteString(stderr, "必须提供配置名称\n")
+		return 1
+	}
+	if profile.IsOfficialName(name) {
+		_, _ = fmt.Fprintf(stderr, "配置 %q 是内置配置名称，不能作为普通 profile\n", name)
 		return 1
 	}
 
@@ -836,6 +884,10 @@ func runEditWithPromptReader(paths Paths, args []string, promptSession *bufio.Re
 	name, input, err := parseProfileFlags(args, true)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s\n", formatCLIError(err))
+		return 1
+	}
+	if profile.IsOfficialName(name) {
+		_, _ = fmt.Fprintf(stderr, "内置配置 %q 不支持编辑\n", name)
 		return 1
 	}
 
@@ -902,6 +954,9 @@ func parseProfileFlags(args []string, requireName bool) (string, profileFlags, e
 	flags.StringVar(&input.defaultOpus, "default-opus-model", "", "default opus model")
 	flags.StringVar(&input.defaultSonnet, "default-sonnet-model", "", "default sonnet model")
 	flags.StringVar(&input.defaultHaiku, "default-haiku-model", "", "default haiku model")
+	flags.StringVar(&input.subagentModel, "subagent-model", "", "claude code subagent model")
+	flags.BoolVar(&input.disableNonessentialTraffic, "disable-nonessential-traffic", false, "disable Claude Code nonessential traffic")
+	flags.BoolVar(&input.disableNonstreamingFallback, "disable-nonstreaming-fallback", false, "disable Claude Code nonstreaming fallback")
 
 	if err := flags.Parse(flagArgs); err != nil {
 		return "", profileFlags{}, err
@@ -937,6 +992,15 @@ func buildProfileEnv(input profileFlags, existing map[string]string) map[string]
 	}
 	if input.defaultHaiku != "" {
 		env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = input.defaultHaiku
+	}
+	if input.subagentModel != "" {
+		env["CLAUDE_CODE_SUBAGENT_MODEL"] = input.subagentModel
+	}
+	if input.disableNonessentialTraffic {
+		env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
+	}
+	if input.disableNonstreamingFallback {
+		env["CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK"] = "1"
 	}
 
 	return env
@@ -1039,6 +1103,11 @@ func promptEditFields(reader *bufio.Reader, existing profile.Profile, input prof
 	if err != nil {
 		return profile.Profile{}, err
 	}
+	existing.Env = buildProfileEnv(profileFlags{
+		subagentModel:               input.subagentModel,
+		disableNonessentialTraffic:  input.disableNonessentialTraffic,
+		disableNonstreamingFallback: input.disableNonstreamingFallback,
+	}, existing.Env)
 
 	return existing, nil
 }
@@ -1131,6 +1200,10 @@ func runRemove(paths Paths, args []string, stdout, stderr io.Writer) int {
 		_, _ = io.WriteString(stderr, "必须提供配置名称\n")
 		return 1
 	}
+	if profile.IsOfficialName(name) {
+		_, _ = fmt.Fprintf(stderr, "内置配置 %q 不支持删除\n", name)
+		return 1
+	}
 
 	if err := profile.Remove(paths.Profiles, name); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s\n", formatCLIError(err))
@@ -1151,6 +1224,10 @@ func runRename(paths Paths, args []string, stdout, stderr io.Writer) int {
 	newName := normalizeProfileName(args[1])
 	if oldName == "" || newName == "" {
 		_, _ = io.WriteString(stderr, "必须提供旧配置名称和新配置名称\n")
+		return 1
+	}
+	if profile.IsOfficialName(oldName) || profile.IsOfficialName(newName) {
+		_, _ = fmt.Fprintf(stderr, "配置 %q 是内置配置名称，不能作为普通 profile\n", profile.OfficialProfileName)
 		return 1
 	}
 

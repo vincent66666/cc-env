@@ -140,6 +140,9 @@ func validateCurrentProfile(data ProfilesFile) error {
 	if data.Current == "" {
 		return nil
 	}
+	if IsOfficialName(data.Current) {
+		return nil
+	}
 	if _, exists := data.Profiles[data.Current]; !exists {
 		return currentProfileMissingError{name: data.Current}
 	}
@@ -155,6 +158,10 @@ func SetCurrent(path, name string) error {
 	name = normalizeProfileName(name)
 	if name == "" {
 		return fmt.Errorf("必须提供配置名称")
+	}
+	if IsOfficialName(name) {
+		data.Current = name
+		return Save(path, data)
 	}
 	if _, ok := data.Profiles[name]; !ok {
 		return fmt.Errorf("未找到配置 %q", name)
