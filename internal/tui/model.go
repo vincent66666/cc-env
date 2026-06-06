@@ -324,7 +324,7 @@ func (m Model) viewForm() string {
 		}
 		mark := "[ ]"
 		if m.form.bools[i] {
-			mark = "[x]"
+			mark = "[✓]"
 		}
 		b.WriteString(cursor + mark + " " + fld.label + "\n")
 	}
