@@ -66,8 +66,7 @@ func (s statusSelector) render() string {
 		return out.String()
 	}
 
-	out.WriteString("\n可用配置：\n")
-	out.WriteString("选择配置：\n")
+	out.WriteString("\n选择配置：\n")
 	for i, name := range names {
 		prefix := "  "
 		if i == s.index {

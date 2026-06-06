@@ -26,7 +26,6 @@ func TestStatusSelectorRender(t *testing.T) {
 		"当前配置：demo - 正式环境",
 		"接口地址：https://example.com",
 		"模型：glm-5",
-		"可用配置：",
 		"选择配置：",
 		"> demo（当前） - 正式环境",
 		"  beta - 测试环境",
@@ -37,6 +36,9 @@ func TestStatusSelectorRender(t *testing.T) {
 		if !strings.Contains(rendered, fragment) {
 			t.Fatalf("expected rendered selector to contain %q, got %q", fragment, rendered)
 		}
+	}
+	if strings.Contains(rendered, "可用配置：") {
+		t.Fatalf("expected selector to drop the redundant 可用配置 header, got %q", rendered)
 	}
 }
 
@@ -147,7 +149,6 @@ func TestStatusSelectorRenderShowsStructuredHeaderAndHints(t *testing.T) {
 		"当前配置：demo - 正式环境",
 		"接口地址：https://example.com",
 		"模型：glm-5",
-		"可用配置：",
 		"选择配置：",
 		"↑/↓ 选择  Enter 切换",
 		interactiveQuitHint,

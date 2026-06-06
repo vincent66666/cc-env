@@ -1780,7 +1780,7 @@ func TestRun_StatusInteractiveArrowSelectionSwitchesProfile(t *testing.T) {
 		t.Fatalf("expected interactive status switch to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "可用配置：") || !strings.Contains(output, "> prod") {
+	if !strings.Contains(output, "选择配置：") || !strings.Contains(output, "> prod") {
 		t.Fatalf("expected interactive selector output, got %q", output)
 	}
 	if strings.Contains(output, "已切换到配置：") {
@@ -1825,7 +1825,7 @@ func TestRun_StatusInteractiveQuitLeavesCurrentUnchanged(t *testing.T) {
 		t.Fatalf("expected interactive status quit to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "可用配置：") {
+	if !strings.Contains(output, "选择配置：") {
 		t.Fatalf("expected interactive selector output, got %q", output)
 	}
 	if strings.Contains(output, "已切换到配置：") {
@@ -1945,7 +1945,7 @@ func TestRun_StatusInteractiveCtrlCLeavesCurrentUnchanged(t *testing.T) {
 		t.Fatalf("expected interactive status Ctrl+C to exit cleanly, output=%q", output)
 	}
 
-	if !strings.Contains(output, "可用配置：") {
+	if !strings.Contains(output, "选择配置：") {
 		t.Fatalf("expected interactive selector output, got %q", output)
 	}
 	if strings.Contains(output, "^C") || strings.Contains(strings.ToLower(output), "interrupt") {
