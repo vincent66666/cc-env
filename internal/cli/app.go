@@ -9,6 +9,7 @@ import (
 
 	"cc-env/internal/output"
 	"cc-env/internal/profile"
+	"cc-env/internal/tui"
 )
 
 type Paths struct {
@@ -21,24 +22,48 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	switch command.Name {
 	case "":
-		return switchProfile(paths, profile.OfficialProfileName, nil, stderr)
+		return runDefault(paths, stdout, stderr)
 	case "current":
 		return runCurrent(paths, stdout, stderr)
-	case "list":
-		return runList(paths, stdout, stderr)
-	case "status":
-		return runStatus(paths, stdout, stderr)
-	case "add":
-		return runAdd(paths, command.Args, stdout, stderr)
-	case "edit":
-		return runEdit(paths, command.Args, stdout, stderr)
-	case "remove":
-		return runRemove(paths, command.Args, stdout, stderr)
-	case "rename":
-		return runRename(paths, command.Args, stdout, stderr)
 	default:
 		return runProfileCommand(paths, command.Name, command.Args, stderr)
 	}
+}
+
+// runTUI 可在测试中替换。
+var runTUI = tui.Run
+
+// isInteractive 判定 stdin 与 stdout 是否均为终端；可在测试中替换。
+var isInteractive = func(stdout io.Writer) bool {
+	file, ok := stdout.(*os.File)
+	if !ok {
+		return false
+	}
+	stat, err := file.Stat()
+	if err != nil || stat.Mode()&os.ModeCharDevice == 0 {
+		return false
+	}
+	inStat, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return inStat.Mode()&os.ModeCharDevice != 0
+}
+
+func runDefault(paths Paths, stdout, stderr io.Writer) int {
+	if !isInteractive(stdout) {
+		return runNonInteractiveStatus(paths, stdout, stderr)
+	}
+
+	result, err := runTUI(paths.Profiles)
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "启动交互界面失败：%v\n", err)
+		return 1
+	}
+	if !result.Launch {
+		return 0
+	}
+	return switchProfile(paths, result.Target, nil, stderr)
 }
 
 func defaultPaths() Paths {
@@ -85,33 +110,7 @@ func runCurrent(paths Paths, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func runList(paths Paths, stdout, stderr io.Writer) int {
-	data, err := profile.LoadForList(paths.Profiles)
-	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "加载配置失败：%v\n", err)
-		return 1
-	}
-
-	names := modeNames(data.Profiles)
-	if selectorInteractive(stdout) && len(names) > 0 {
-		return runInteractiveList(paths, listMenu{
-			profiles:     prioritizeCurrentProfile(names, data.Current),
-			currentName:  data.Current,
-			descriptions: profileDescriptions(data.Profiles),
-		}, stdout, stderr)
-	}
-
-	currentDisplay := ""
-	if profile.IsOfficialName(data.Current) {
-		currentDisplay = profileDisplayName(data.Current, officialProfileDescription())
-	} else if currentProfile, ok := data.Profiles[data.Current]; ok {
-		currentDisplay = profileDisplayName(data.Current, currentProfile.Description)
-	}
-
-	return output.RenderList(stdout, currentDisplay, displayNamesForProfiles(data.Profiles, names))
-}
-
-func runStatus(paths Paths, stdout, stderr io.Writer) int {
+func runNonInteractiveStatus(paths Paths, stdout, stderr io.Writer) int {
 	data, err := profile.Load(paths.Profiles)
 	if err != nil {
 		if shouldRenderUnknownForProfileLoadError(err) {
@@ -122,25 +121,13 @@ func runStatus(paths Paths, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	currentProfile, currentDisplay, currentBaseURL, currentModel, ok := currentStatus(data)
+	currentProfile, currentDisplay, _, _, ok := currentStatus(data)
 	if !ok {
 		_, _ = io.WriteString(stdout, "当前配置：未知\n")
 		return 0
 	}
 
 	names := availableNames(data.Profiles, data.Current)
-	if selectorInteractive(stdout) && len(names) > 0 {
-		selector := statusSelector{
-			currentName:        data.Current,
-			currentDescription: currentDescription(data.Current, currentProfile),
-			baseURL:            currentBaseURL,
-			model:              currentModel,
-			names:              names,
-			descriptions:       profileDescriptions(data.Profiles),
-		}
-		return runInteractiveStatus(paths, selector, stdout, stderr)
-	}
-
 	return output.RenderStatus(
 		stdout,
 		currentDisplay,

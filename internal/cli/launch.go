@@ -80,6 +80,9 @@ func runClaude(args []string, env []string) error {
 	return command.Run()
 }
 
+// launchClaude 可在测试中替换。
+var launchClaude = runClaude
+
 func buildClaudeEnv(base []string, overlay map[string]string) []string {
 	managed := map[string]struct{}{}
 	for _, key := range profile.ManagedEnvKeys {

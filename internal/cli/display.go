@@ -55,23 +55,6 @@ func profileDisplayName(name, description string) string {
 	return name + " - " + description
 }
 
-func profileListDisplayName(name, description string, current bool) string {
-	if current {
-		return profileDisplayName(name+"（当前）", description)
-	}
-
-	return profileDisplayName(name, description)
-}
-
-func profileDescriptions(profiles map[string]profile.Profile) map[string]string {
-	descriptions := make(map[string]string, len(profiles))
-	for name, item := range profiles {
-		descriptions[name] = item.Description
-	}
-	descriptions[profile.OfficialProfileName] = officialProfileDescription()
-	return descriptions
-}
-
 func currentDescription(name string, currentProfile profile.Profile) string {
 	if profile.IsOfficialName(name) {
 		return officialProfileDescription()
