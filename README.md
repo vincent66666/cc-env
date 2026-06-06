@@ -49,6 +49,7 @@ go build -o cc-env .
         "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro",
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
         "CLAUDE_CODE_SUBAGENT_MODEL": "deepseek-v4-flash",
+        "CLAUDE_CODE_EFFORT_LEVEL": "max",
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
         "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK": "1"
       }
@@ -96,8 +97,14 @@ cc-env
 | `a` | 新建 profile |
 | `e` | 编辑当前选中的 profile |
 | `d` | 删除当前选中的 profile |
-| `/` | 过滤 |
-| `q` | 退出（不切换） |
+| `/` | 过滤（输入关键字，`Enter` 应用，`Esc` 取消） |
+| `q` / `Ctrl+C` | 退出（不切换） |
+
+界面说明：
+
+- 左侧为配置列表，右侧卡片实时预览选中 profile 的字段，`ANTHROPIC_AUTH_TOKEN` 会自动遮罩。
+- 列表顺序：`official` 置顶，其次为当前配置，其余按名称排序。
+- **重命名**：在 `e` 编辑表单里修改「名称」字段即可，保存时自动迁移（无单独的重命名命令）。
 
 > 非交互终端（管道/重定向）下，`cc-env` 打印当前配置状态后直接退出，不启动 claude。
 

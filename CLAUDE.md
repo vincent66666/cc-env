@@ -48,4 +48,8 @@ internal/
 - `cc-env` (no args) enters the interactive TUI; in a non-TTY context it prints the current status and exits without launching claude
 - Built-in `official` mode clears managed third-party variables and uses Claude's native login state
 - Environment override: `CC_ENV_PROFILES_PATH`; legacy `CC_SWITCH_PROFILES_PATH` is still accepted as a fallback
-- Profile env fields: `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, `ANTHROPIC_DEFAULT_HAIKU_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_CODE_EFFORT_LEVEL`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK`
+- Profile env fields: `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, `ANTHROPIC_DEFAULT_HAIKU_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_CODE_EFFORT_LEVEL`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK` — the whitelist is `profile.ManagedEnvKeys`; adding a field there means also adding a `shortKey` label (`preview.go`) and a form field (`form.go`)
+- TUI list order: `official` is pinned first, then the current profile, then the rest sorted (`buildItems`/`orderProfiles`)
+- `Model.Update` forwards non-key messages to the active sub-component via `forwardMsg`; this is required for the bubbles list's asynchronous `/` filtering (`FilterMatchesMsg`) to take effect — do not drop unknown messages
+- Rename is folded into the edit form: changing the name field migrates the profile key and the `current` pointer in `submitForm` (there is no separate rename command)
+- `maskSecret` caps the number of `*` so long tokens don't widen or wrap the preview card
