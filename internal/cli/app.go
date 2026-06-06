@@ -75,14 +75,14 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	paths := defaultPaths()
 
 	switch command.Name {
+	case "":
+		return switchProfile(paths, profile.OfficialProfileName, nil, stderr)
 	case "current":
 		return runCurrent(paths, stdout, stderr)
 	case "list":
 		return runList(paths, stdout, stderr)
 	case "status":
 		return runStatus(paths, stdout, stderr)
-	case "use":
-		return runUse(paths, command.Args, stdout, stderr)
 	case "add":
 		return runAdd(paths, command.Args, stdout, stderr)
 	case "edit":
@@ -92,8 +92,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	case "rename":
 		return runRename(paths, command.Args, stdout, stderr)
 	default:
-		_, _ = fmt.Fprintf(stderr, "未知命令：%s\n", command.Name)
-		return 1
+		return runProfileCommand(paths, command.Name, command.Args, stderr)
 	}
 }
 
@@ -239,24 +238,17 @@ func shouldRenderUnknownForProfileLoadError(err error) bool {
 	return errors.Is(err, profile.ErrCurrentProfileMissing)
 }
 
-func runUse(paths Paths, args []string, stdout, stderr io.Writer) int {
-	target, claudeArgs := parseUseArgs(args)
+func runProfileCommand(paths Paths, name string, args []string, stderr io.Writer) int {
+	target, claudeArgs := parseProfileCommandArgs(name, args)
 	return switchProfile(paths, target, claudeArgs, stderr)
 }
 
-func parseUseArgs(args []string) (string, []string) {
-	if len(args) == 0 {
-		return "", nil
+func parseProfileCommandArgs(name string, args []string) (string, []string) {
+	target := normalizeProfileName(name)
+	if len(args) > 0 && args[0] == "--" {
+		return target, args[1:]
 	}
-	if args[0] == "--" {
-		return "", args[1:]
-	}
-
-	target := normalizeProfileName(args[0])
-	if len(args) > 1 && args[1] == "--" {
-		return target, args[2:]
-	}
-	return target, args[1:]
+	return target, args
 }
 
 func switchProfile(paths Paths, target string, claudeArgs []string, stderr io.Writer) int {
@@ -836,7 +828,7 @@ func runAdd(paths Paths, args []string, stdout, stderr io.Writer) int {
 		_, _ = io.WriteString(stderr, "必须提供配置名称\n")
 		return 1
 	}
-	if profile.IsOfficialName(name) {
+	if isReservedProfileName(name) {
 		_, _ = fmt.Fprintf(stderr, "配置 %q 是内置配置名称，不能作为普通 profile\n", name)
 		return 1
 	}
@@ -1233,6 +1225,10 @@ func runRename(paths Paths, args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintf(stderr, "配置 %q 是内置配置名称，不能作为普通 profile\n", profile.OfficialProfileName)
 		return 1
 	}
+	if isReservedCommandName(newName) {
+		_, _ = fmt.Fprintf(stderr, "配置 %q 是内置配置名称，不能作为普通 profile\n", newName)
+		return 1
+	}
 
 	if err := profile.Rename(paths.Profiles, oldName, newName); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s\n", formatCLIError(err))
@@ -1249,4 +1245,17 @@ func formatCLIError(err error) string {
 	}
 
 	return err.Error()
+}
+
+func isReservedProfileName(name string) bool {
+	return profile.IsOfficialName(name) || isReservedCommandName(name)
+}
+
+func isReservedCommandName(name string) bool {
+	switch name {
+	case "current", "list", "status", "add", "edit", "remove", "rename":
+		return true
+	default:
+		return false
+	}
 }

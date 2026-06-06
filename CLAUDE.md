@@ -20,7 +20,7 @@ go test ./internal/cli/ -run TestFoo -count=1  # Run single test
 main.go              → Entry point, calls cli.Run()
 internal/
   cli/               → Command dispatch, argument parsing, interactive TUI menus
-    app.go           → Core command handler (current/list/status/use/add/edit/remove/rename)
+    app.go           → Core command handler (profile launch, current/list/status/add/edit/remove/rename)
     parse.go         → CLI argument parser
     status_selector.go / list_menu.go → Interactive terminal menus
     term_darwin.go / term_other.go    → Platform-specific raw terminal mode
@@ -28,14 +28,14 @@ internal/
     types.go         → Profile & ProfilesFile structs
     store.go         → Read/write profiles.json
     validate.go      → Profile validation rules
-  settings/          → Legacy settings.json integration, no longer called by CLI use flow
+  settings/          → Legacy settings.json integration, no longer called by CLI launch flow
   output/            → Terminal styling and formatted output helpers
 ```
 
 ## Key Design Details
 
 - **Zero external dependencies** — stdlib only (Go 1.23)
-- `cc-env use` saves the current mode, clears managed Claude API variables, overlays the selected profile env, and runs `claude`
+- `cc-env <profile|official>` saves the current mode, clears managed Claude API variables, overlays the selected profile env, and runs `claude`
 - Built-in `official` mode clears managed third-party variables and uses Claude's native login state
 - Environment override: `CC_ENV_PROFILES_PATH`; legacy `CC_SWITCH_PROFILES_PATH` is still accepted as a fallback
 - Interactive menus use raw terminal mode with platform-specific implementations (darwin vs other)

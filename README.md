@@ -7,11 +7,11 @@
 ## 功能概览
 
 - 用 `~/.claude/cc-env/profiles.json` 保存多个第三方 API profile
-- 用 `cc-env use <profile|official>` 保存当前模式并启动 `claude`
-- 用 `cc-env use` 按当前模式启动；如果 current 为空，则默认使用 `official`
-- 支持把 `--` 后的参数原样传给 `claude`
+- 用 `cc-env <profile|official>` 保存当前模式并启动 `claude`
+- 用 `cc-env` 按 `official` 模式启动，清理第三方路由变量后使用 Claude 官方登录态
+- 支持把 profile 名后的参数原样传给 `claude`，也兼容用 `--` 显式分隔
 - 支持新增、编辑、删除、重命名第三方 profile
-- `official` 是内置保留名，不能作为普通 profile 使用
+- `official` 和内置命令名是保留名，不能作为普通 profile 使用
 
 ## 默认文件路径
 
@@ -82,7 +82,7 @@ go build -o cc-env .
 ### 查看状态
 
 ```bash
-cc-env
+cc-env status
 ```
 
 示例输出：
@@ -122,13 +122,19 @@ official - 官方登录态
 ### 启动第三方 profile
 
 ```bash
-cc-env use deepseek
+cc-env deepseek
 ```
 
 传参给 Claude：
 
 ```bash
-cc-env use deepseek -- --print "hello"
+cc-env deepseek --print "hello"
+```
+
+也可以显式使用 `--` 分隔：
+
+```bash
+cc-env deepseek -- --print "hello"
 ```
 
 执行顺序：
@@ -143,18 +149,18 @@ cc-env use deepseek -- --print "hello"
 ### 启动官方登录态
 
 ```bash
-cc-env use official
+cc-env official
 ```
 
 `official` 模式会清理第三方路由变量后启动 `claude`，不会写入 token、base URL 或 model。
 
-### 使用当前模式启动
+### 默认启动
 
 ```bash
-cc-env use
+cc-env
 ```
 
-如果 `current` 为空，默认按 `official` 启动。
+不带参数时等价于 `cc-env official`。
 
 ## Profile 管理
 
@@ -195,6 +201,7 @@ cc-env rename deepseek ds
 限制：
 
 - `official` 是内置模式，不能新增、编辑、删除或重命名
+- `status`、`list`、`current`、`add`、`edit`、`remove`、`rename` 是内置命令名，不能作为普通 profile 名称
 - 不能删除当前正在使用的普通 profile
 - 第三方 profile 必须包含 token 和 base URL
 

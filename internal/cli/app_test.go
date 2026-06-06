@@ -75,8 +75,14 @@ func envValue(env []string, key string) (string, bool) {
 	return "", false
 }
 
-func TestRun_NoArgsShowsStatus(t *testing.T) {
-	t.Setenv("CC_ENV_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
+func TestRun_NoArgsDefaultsToOfficialAndClearsManagedEnv(t *testing.T) {
+	call := stubClaudeLauncher(t)
+	profilesPath := filepath.Join(t.TempDir(), "profiles.json")
+
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
+	for _, key := range profile.ManagedEnvKeys {
+		t.Setenv(key, "old-"+key)
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -87,16 +93,29 @@ func TestRun_NoArgsShowsStatus(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", exitCode)
 	}
 
-	if got := stdout.String(); got != "当前配置：未知\n" {
-		t.Fatalf("expected status output, got %q", got)
+	if got := stdout.String(); got != "" {
+		t.Fatalf("expected official launch to keep stdout clean, got %q", got)
 	}
 
 	if got := stderr.String(); got != "" {
 		t.Fatalf("expected empty stderr, got %q", got)
 	}
+
+	savedProfiles, err := profile.Load(profilesPath)
+	if err != nil {
+		t.Fatalf("load profiles after default official launch: %v", err)
+	}
+	if savedProfiles.Current != profile.OfficialProfileName {
+		t.Fatalf("expected current profile official, got %q", savedProfiles.Current)
+	}
+	for _, key := range profile.ManagedEnvKeys {
+		if value, ok := envValue(call.env, key); ok {
+			t.Fatalf("expected official mode to clear %s, got %q", key, value)
+		}
+	}
 }
 
-func TestRun_UseLaunchesClaudeWithProfileEnvAndCurrentProfile(t *testing.T) {
+func TestRun_ProfileCommandLaunchesClaudeWithProfileEnvAndCurrentProfile(t *testing.T) {
 	call := stubClaudeLauncher(t)
 	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
 		Version: 1,
@@ -140,13 +159,13 @@ func TestRun_UseLaunchesClaudeWithProfileEnvAndCurrentProfile(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "demo", "--", "--print"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo", "--print"}, &stdout, &stderr)
 	if exitCode != 0 {
 		t.Fatalf("expected exit code 0, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	if got := stdout.String(); got != "" {
-		t.Fatalf("expected use to keep stdout clean, got %q", got)
+		t.Fatalf("expected profile command to keep stdout clean, got %q", got)
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
@@ -208,7 +227,7 @@ func TestRun_UseLaunchesClaudeWithProfileEnvAndCurrentProfile(t *testing.T) {
 	}
 }
 
-func TestRun_UseRecoversFromMissingCurrentProfile(t *testing.T) {
+func TestRun_ProfileCommandRecoversFromMissingCurrentProfile(t *testing.T) {
 	profilesPath := writeRawProfilesFixture(t, `{
   "version": 1,
   "current": "ghost",
@@ -236,13 +255,13 @@ func TestRun_UseRecoversFromMissingCurrentProfile(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "demo"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo"}, &stdout, &stderr)
 	if exitCode != 0 {
 		t.Fatalf("expected exit code 0, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	if got := stdout.String(); got != "" {
-		t.Fatalf("expected use to keep stdout clean, got %q", got)
+		t.Fatalf("expected profile command to keep stdout clean, got %q", got)
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
@@ -254,7 +273,7 @@ func TestRun_UseRecoversFromMissingCurrentProfile(t *testing.T) {
 	}
 }
 
-func TestRun_UseIgnoresInvalidSettingsAndAdvancesCurrent(t *testing.T) {
+func TestRun_ProfileCommandIgnoresInvalidSettingsAndAdvancesCurrent(t *testing.T) {
 	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
 		Version: 1,
 		Current: "beta",
@@ -281,9 +300,9 @@ func TestRun_UseIgnoresInvalidSettingsAndAdvancesCurrent(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "demo"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo"}, &stdout, &stderr)
 	if exitCode != 0 {
-		t.Fatalf("expected use to ignore invalid settings json, got %d, stderr=%q", exitCode, stderr.String())
+		t.Fatalf("expected profile command to ignore invalid settings json, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
@@ -296,7 +315,7 @@ func TestRun_UseIgnoresInvalidSettingsAndAdvancesCurrent(t *testing.T) {
 	}
 }
 
-func TestRun_UseTrimsNameArgument(t *testing.T) {
+func TestRun_ProfileCommandTrimsNameArgument(t *testing.T) {
 	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
 		Version: 1,
 		Current: "beta",
@@ -323,26 +342,25 @@ func TestRun_UseTrimsNameArgument(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", " demo "}, &stdout, &stderr)
+	exitCode := Run([]string{" demo "}, &stdout, &stderr)
 	if exitCode != 0 {
-		t.Fatalf("expected use with spaced name to succeed, got %d, stderr=%q", exitCode, stderr.String())
+		t.Fatalf("expected profile command with spaced name to succeed, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
 	if err != nil {
-		t.Fatalf("load profiles after trimmed-name use: %v", err)
+		t.Fatalf("load profiles after trimmed-name profile command: %v", err)
 	}
 
 	if savedProfiles.Current != "demo" {
-		t.Fatalf("expected trimmed-name use to switch to demo, got %q", savedProfiles.Current)
+		t.Fatalf("expected trimmed-name profile command to switch to demo, got %q", savedProfiles.Current)
 	}
 }
 
-func TestRun_UseWithoutNameUsesCurrentProfile(t *testing.T) {
+func TestRun_ProfileCommandStripsOptionalSeparatorBeforeClaudeArgs(t *testing.T) {
 	call := stubClaudeLauncher(t)
 	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
 		Version: 1,
-		Current: "demo",
 		Profiles: map[string]profile.Profile{
 			"demo": {
 				Env: map[string]string{
@@ -358,20 +376,17 @@ func TestRun_UseWithoutNameUsesCurrentProfile(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "--", "--print"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo", "--", "--print"}, &stdout, &stderr)
 	if exitCode != 0 {
-		t.Fatalf("expected use with current profile to succeed, got %d, stderr=%q", exitCode, stderr.String())
+		t.Fatalf("expected profile command with separator to succeed, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	if got := strings.Join(call.args, " "); got != "--print" {
 		t.Fatalf("expected claude args to be forwarded, got %q", got)
 	}
-	if value, ok := envValue(call.env, profile.EnvAuthToken); !ok || value != "token-demo" {
-		t.Fatalf("expected current profile token env, got %q exists=%v", value, ok)
-	}
 }
 
-func TestRun_UseDefaultsToOfficialAndClearsManagedEnv(t *testing.T) {
+func TestRun_OfficialProfileCommandClearsManagedEnv(t *testing.T) {
 	call := stubClaudeLauncher(t)
 	profilesPath := filepath.Join(t.TempDir(), "profiles.json")
 
@@ -383,14 +398,14 @@ func TestRun_UseDefaultsToOfficialAndClearsManagedEnv(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use"}, &stdout, &stderr)
+	exitCode := Run([]string{profile.OfficialProfileName}, &stdout, &stderr)
 	if exitCode != 0 {
-		t.Fatalf("expected default official use to succeed, got %d, stderr=%q", exitCode, stderr.String())
+		t.Fatalf("expected official profile command to succeed, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
 	if err != nil {
-		t.Fatalf("load profiles after official use: %v", err)
+		t.Fatalf("load profiles after official profile command: %v", err)
 	}
 	if savedProfiles.Current != profile.OfficialProfileName {
 		t.Fatalf("expected current profile official, got %q", savedProfiles.Current)
@@ -434,6 +449,43 @@ func TestRun_OfficialNameIsReservedForProfileManagement(t *testing.T) {
 			exitCode := Run(tc.args, &stdout, &stderr)
 			if exitCode == 0 {
 				t.Fatalf("expected %s to reject official", tc.name)
+			}
+		})
+	}
+}
+
+func TestRun_CommandNamesAreReservedForProfileManagement(t *testing.T) {
+	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
+		Version: 1,
+		Profiles: map[string]profile.Profile{
+			"demo": {
+				Env: map[string]string{
+					profile.EnvAuthToken: "token-demo",
+					profile.EnvBaseURL:   "https://demo.example.com",
+				},
+			},
+		},
+	})
+
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
+
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{"add list", []string{"add", "list", "--token", "token", "--base-url", "https://example.com"}},
+		{"rename to list", []string{"rename", "demo", "list"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			exitCode := Run(tc.args, &stdout, &stderr)
+			if exitCode == 0 {
+				t.Fatalf("expected %s to reject reserved command name", tc.name)
+			}
+			if got := stderr.String(); got != "配置 \"list\" 是内置配置名称，不能作为普通 profile\n" {
+				t.Fatalf("expected reserved command name error, got %q", got)
 			}
 		})
 	}
@@ -1245,7 +1297,7 @@ func TestRun_EditInteractiveMasksShortToken(t *testing.T) {
 	}
 }
 
-func TestRun_UseIgnoresUnwritableBackupDir(t *testing.T) {
+func TestRun_ProfileCommandIgnoresUnwritableBackupDir(t *testing.T) {
 	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
 		Version: 1,
 		Current: "beta",
@@ -1278,14 +1330,14 @@ func TestRun_UseIgnoresUnwritableBackupDir(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "demo"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo"}, &stdout, &stderr)
 	if exitCode != 0 {
-		t.Fatalf("expected use to ignore backup dir, got %d, stderr=%q", exitCode, stderr.String())
+		t.Fatalf("expected profile command to ignore backup dir, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
 	if err != nil {
-		t.Fatalf("load profiles after failed use: %v", err)
+		t.Fatalf("load profiles after profile command: %v", err)
 	}
 
 	if savedProfiles.Current != "demo" {
@@ -1293,7 +1345,7 @@ func TestRun_UseIgnoresUnwritableBackupDir(t *testing.T) {
 	}
 }
 
-func TestRun_UseRollsBackSettingsWhenUpdatingCurrentFails(t *testing.T) {
+func TestRun_ProfileCommandRollsBackSettingsWhenUpdatingCurrentFails(t *testing.T) {
 	root := t.TempDir()
 	profilesDir := filepath.Join(root, "profiles")
 	if err := os.MkdirAll(profilesDir, 0o755); err != nil {
@@ -1343,14 +1395,14 @@ func TestRun_UseRollsBackSettingsWhenUpdatingCurrentFails(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "demo"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo"}, &stdout, &stderr)
 	if exitCode == 0 {
-		t.Fatal("expected use to fail when updating current profile cannot persist")
+		t.Fatal("expected profile command to fail when updating current profile cannot persist")
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
 	if err != nil {
-		t.Fatalf("load profiles after failed use: %v", err)
+		t.Fatalf("load profiles after failed profile command: %v", err)
 	}
 
 	if savedProfiles.Current != "beta" {
@@ -1359,12 +1411,12 @@ func TestRun_UseRollsBackSettingsWhenUpdatingCurrentFails(t *testing.T) {
 
 	content, err := os.ReadFile(settingsPath)
 	if err != nil {
-		t.Fatalf("read settings after failed use: %v", err)
+		t.Fatalf("read settings after failed profile command: %v", err)
 	}
 
 	var got map[string]any
 	if err := json.Unmarshal(content, &got); err != nil {
-		t.Fatalf("unmarshal settings after failed use: %v", err)
+		t.Fatalf("unmarshal settings after failed profile command: %v", err)
 	}
 
 	env, ok := got["env"].(map[string]any)
@@ -1381,7 +1433,7 @@ func TestRun_UseRollsBackSettingsWhenUpdatingCurrentFails(t *testing.T) {
 	}
 }
 
-func TestRun_CustomPathsSupportAddUseAndCurrentFlow(t *testing.T) {
+func TestRun_CustomPathsSupportAddProfileCommandAndCurrentFlow(t *testing.T) {
 	root := t.TempDir()
 	profilesPath := filepath.Join(root, "custom", "profiles.json")
 
@@ -1404,9 +1456,9 @@ func TestRun_CustomPathsSupportAddUseAndCurrentFlow(t *testing.T) {
 	var useStdout bytes.Buffer
 	var useStderr bytes.Buffer
 
-	useExitCode := Run([]string{"use", "demo"}, &useStdout, &useStderr)
+	useExitCode := Run([]string{"demo"}, &useStdout, &useStderr)
 	if useExitCode != 0 {
-		t.Fatalf("expected use on custom paths to succeed, got %d, stderr=%q", useExitCode, useStderr.String())
+		t.Fatalf("expected profile command on custom paths to succeed, got %d, stderr=%q", useExitCode, useStderr.String())
 	}
 
 	var currentStdout bytes.Buffer
@@ -1422,7 +1474,7 @@ func TestRun_CustomPathsSupportAddUseAndCurrentFlow(t *testing.T) {
 	}
 }
 
-func TestRun_UseIgnoresCustomSettingsPath(t *testing.T) {
+func TestRun_ProfileCommandIgnoresCustomSettingsPath(t *testing.T) {
 	root := t.TempDir()
 	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
 		Version: 1,
@@ -1454,14 +1506,14 @@ func TestRun_UseIgnoresCustomSettingsPath(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run([]string{"use", "demo"}, &stdout, &stderr)
+	exitCode := Run([]string{"demo"}, &stdout, &stderr)
 	if exitCode != 0 {
-		t.Fatalf("expected use to ignore custom settings path, got %d, stderr=%q", exitCode, stderr.String())
+		t.Fatalf("expected profile command to ignore custom settings path, got %d, stderr=%q", exitCode, stderr.String())
 	}
 
 	savedProfiles, err := profile.Load(profilesPath)
 	if err != nil {
-		t.Fatalf("load profiles after failed use: %v", err)
+		t.Fatalf("load profiles after profile command: %v", err)
 	}
 
 	if savedProfiles.Current != "demo" {
@@ -1670,7 +1722,9 @@ func TestRun_RenameTrimsNameArguments(t *testing.T) {
 	}
 }
 
-func TestRun_ImportCommandIsUnknown(t *testing.T) {
+func TestRun_UnknownCommandIsTreatedAsProfileName(t *testing.T) {
+	t.Setenv("CC_ENV_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
+
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -1683,8 +1737,8 @@ func TestRun_ImportCommandIsUnknown(t *testing.T) {
 		t.Fatalf("expected empty stdout, got %q", got)
 	}
 
-	if got := stderr.String(); got != "未知命令：import\n" {
-		t.Fatalf("expected unknown command error, got %q", got)
+	if got := stderr.String(); got != "未找到配置 \"import\"\n" {
+		t.Fatalf("expected missing profile error, got %q", got)
 	}
 }
 
@@ -1718,7 +1772,7 @@ func TestRun_StatusInteractiveArrowSelectionSwitchesProfile(t *testing.T) {
 	})
 	settingsPath := writeSettingsFixture(t, `{"env":{"ANTHROPIC_AUTH_TOKEN":"old-token"}}`)
 
-	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "\x1b[B\x1b[B\r", map[string]string{
+	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"status"}, "\x1b[B\x1b[B\r", map[string]string{
 		"CC_ENV_PROFILES_PATH":    profilesPath,
 		"CC_SWITCH_SETTINGS_PATH": settingsPath,
 	})
@@ -1764,7 +1818,7 @@ func TestRun_StatusInteractiveQuitLeavesCurrentUnchanged(t *testing.T) {
 		},
 	})
 
-	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "q", map[string]string{
+	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"status"}, "q", map[string]string{
 		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
@@ -1809,7 +1863,7 @@ func TestRun_StatusInteractiveUsesAlternateScreen(t *testing.T) {
 		},
 	})
 
-	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "q", map[string]string{
+	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"status"}, "q", map[string]string{
 		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
@@ -1848,7 +1902,7 @@ func TestRun_StatusInteractiveAlternateScreenWrapsMultipleMoves(t *testing.T) {
 		},
 	})
 
-	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "\x1b[B\x1b[Aq", map[string]string{
+	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"status"}, "\x1b[B\x1b[Aq", map[string]string{
 		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
@@ -1884,7 +1938,7 @@ func TestRun_StatusInteractiveCtrlCLeavesCurrentUnchanged(t *testing.T) {
 		},
 	})
 
-	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "\x03", map[string]string{
+	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"status"}, "\x03", map[string]string{
 		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
@@ -1915,7 +1969,7 @@ func TestRun_StatusInteractiveWithoutAlternativesPrintsStatusOnly(t *testing.T) 
 		Profiles: map[string]profile.Profile{},
 	})
 
-	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "", map[string]string{
+	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"status"}, "", map[string]string{
 		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
@@ -2009,7 +2063,7 @@ func TestRun_StatusFallsBackToPlainTextWhenStdoutIsNotTTY(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run(nil, &stdout, &stderr)
+	exitCode := Run([]string{"status"}, &stdout, &stderr)
 	if exitCode != 0 {
 		t.Fatalf("expected status fallback to succeed, got %d, stderr=%q", exitCode, stderr.String())
 	}
@@ -2083,7 +2137,7 @@ func TestRun_StatusFallsBackToPlainTextWhenStdoutIsTTYAndStdinIsFile(t *testing.
 		},
 	})
 
-	exitCode, output := runWithTTYStdoutAndFileStdin(t, scriptPath, nil, "", map[string]string{
+	exitCode, output := runWithTTYStdoutAndFileStdin(t, scriptPath, []string{"status"}, "", map[string]string{
 		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
@@ -2315,6 +2369,35 @@ func TestRun_ListPrintsOfficialWhenProfilesFileIsMissing(t *testing.T) {
 	}
 	if got := stderr.String(); got != "" {
 		t.Fatalf("expected empty stderr, got %q", got)
+	}
+}
+
+func TestRun_ListCommandWinsOverExistingListProfile(t *testing.T) {
+	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
+		Version: 1,
+		Profiles: map[string]profile.Profile{
+			"list": {
+				Description: "Legacy conflict",
+				Env: map[string]string{
+					profile.EnvAuthToken: "token-list",
+					profile.EnvBaseURL:   "https://list.example.com",
+				},
+			},
+		},
+	})
+
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run([]string{"list"}, &stdout, &stderr)
+	if exitCode != 0 {
+		t.Fatalf("expected list command to succeed, got %d, stderr=%q", exitCode, stderr.String())
+	}
+
+	if got := stdout.String(); got != "list - Legacy conflict\nofficial - 官方登录态\n" {
+		t.Fatalf("expected list command output for existing conflict profile, got %q", got)
 	}
 }
 
@@ -3369,7 +3452,7 @@ func TestRun_NoArgsShowsBaseURLAndModel(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run(nil, &stdout, &stderr)
+	exitCode := Run([]string{"status"}, &stdout, &stderr)
 
 	if exitCode != 0 {
 		t.Fatalf("expected exit code 0, got %d", exitCode)

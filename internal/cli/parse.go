@@ -7,7 +7,7 @@ type Command struct {
 
 func Parse(args []string) Command {
 	if len(args) == 0 {
-		return Command{Name: "status"}
+		return Command{}
 	}
 
 	return Command{
