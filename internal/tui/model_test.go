@@ -117,6 +117,7 @@ func TestEnterOnProfileSetsLaunchResult(t *testing.T) {
 	path := writeProfiles(t, sampleData())
 	m, _ := newModel(path)
 	m.list.SetSize(40, 10)
+	m = update(m, key("j")) // official -> kimi（当前）
 	m = update(m, key("enter"))
 	if !m.result.Launch || m.result.Target != "kimi" {
 		t.Fatalf("result = %+v, want launch kimi", m.result)
@@ -147,7 +148,8 @@ func TestPressDOnDeletableEntersConfirm(t *testing.T) {
 	path := writeProfiles(t, sampleData()) // current kimi; deepseek deletable
 	m, _ := newModel(path)
 	m.list.SetSize(40, 10)
-	m = update(m, key("j")) // 移动到 deepseek（第二项）
+	m = update(m, key("j")) // official -> kimi
+	m = update(m, key("j")) // kimi -> deepseek
 	m = update(m, key("d"))
 	if m.state != stateConfirm || m.confirmName != "deepseek" {
 		t.Fatalf("state = %v confirm = %q", m.state, m.confirmName)
@@ -155,9 +157,10 @@ func TestPressDOnDeletableEntersConfirm(t *testing.T) {
 }
 
 func TestPressDOnCurrentIgnored(t *testing.T) {
-	path := writeProfiles(t, sampleData()) // 首项 kimi 是 current
+	path := writeProfiles(t, sampleData()) // current = kimi
 	m, _ := newModel(path)
 	m.list.SetSize(40, 10)
+	m = update(m, key("j")) // official -> kimi（当前）
 	m = update(m, key("d"))
 	if m.state != stateList {
 		t.Fatalf("delete on current should stay in list, got %v", m.state)
@@ -168,8 +171,7 @@ func TestPressDOnOfficialIgnored(t *testing.T) {
 	path := writeProfiles(t, sampleData())
 	m, _ := newModel(path)
 	m.list.SetSize(40, 10)
-	m = update(m, key("G")) // 跳到末项 official（list 默认绑定 G=末尾）
-	m = update(m, key("d"))
+	m = update(m, key("d")) // 首项即 official
 	if m.state != stateList {
 		t.Fatalf("delete on official should stay in list, got %v", m.state)
 	}

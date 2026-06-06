@@ -42,12 +42,11 @@ func descriptionFor(data profile.ProfilesFile, name string) string {
 }
 
 func buildItems(data profile.ProfilesFile) []list.Item {
-	names := profileNamesSorted(data.Profiles)
-	names = append(names, profile.OfficialProfileName)
-	ordered := orderProfiles(names, data.Current)
+	// official 始终置顶；其余 profile 中当前配置优先，再按名称排序。
+	names := append([]string{profile.OfficialProfileName}, orderProfiles(profileNamesSorted(data.Profiles), data.Current)...)
 
-	items := make([]list.Item, 0, len(ordered))
-	for _, name := range ordered {
+	items := make([]list.Item, 0, len(names))
+	for _, name := range names {
 		items = append(items, profileItem{
 			name:        name,
 			description: descriptionFor(data, name),

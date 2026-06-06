@@ -46,25 +46,25 @@ func sampleData() profile.ProfilesFile {
 	}
 }
 
-func TestBuildItemsOrdersCurrentFirstOfficialLast(t *testing.T) {
+func TestBuildItemsPutsOfficialFirstThenCurrent(t *testing.T) {
 	items := buildItems(sampleData())
 	if len(items) != 3 {
 		t.Fatalf("expected 3 items, got %d", len(items))
 	}
 	first := items[0].(profileItem)
-	last := items[2].(profileItem)
-	if first.name != "kimi" || !first.current {
-		t.Fatalf("first item = %+v, want current kimi", first)
+	second := items[1].(profileItem)
+	if first.name != profile.OfficialProfileName || !first.official {
+		t.Fatalf("first item = %+v, want official first", first)
 	}
-	if last.name != profile.OfficialProfileName || !last.official {
-		t.Fatalf("last item = %+v, want official", last)
+	if second.name != "kimi" || !second.current {
+		t.Fatalf("second item = %+v, want current kimi second", second)
 	}
 }
 
 func TestBuildItemsOfficialDescription(t *testing.T) {
 	items := buildItems(sampleData())
-	last := items[2].(profileItem)
-	if last.description != "官方登录态" {
-		t.Fatalf("official description = %q", last.description)
+	first := items[0].(profileItem)
+	if first.description != "官方登录态" {
+		t.Fatalf("official description = %q", first.description)
 	}
 }
