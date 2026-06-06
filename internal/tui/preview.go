@@ -41,6 +41,8 @@ func renderPreview(name string, p profile.Profile) string {
 	return paneStyle.Render(b.String())
 }
 
+// shortKey 把受管 env key 映射为预览用短标签，避免长 key 在窄列里折行。
+// 新增 ManagedEnvKeys 时需在此补充对应短标签（保持 ≤ previewKey 宽度）。
 func shortKey(envKey string) string {
 	switch envKey {
 	case profile.EnvAuthToken:
@@ -49,6 +51,20 @@ func shortKey(envKey string) string {
 		return "base"
 	case "ANTHROPIC_MODEL":
 		return "model"
+	case "ANTHROPIC_DEFAULT_OPUS_MODEL":
+		return "opus"
+	case "ANTHROPIC_DEFAULT_SONNET_MODEL":
+		return "sonnet"
+	case "ANTHROPIC_DEFAULT_HAIKU_MODEL":
+		return "haiku"
+	case "CLAUDE_CODE_SUBAGENT_MODEL":
+		return "subagent"
+	case "CLAUDE_CODE_EFFORT_LEVEL":
+		return "effort"
+	case "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":
+		return "no-traffic"
+	case "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK":
+		return "no-stream"
 	default:
 		return envKey
 	}

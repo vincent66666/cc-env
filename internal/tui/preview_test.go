@@ -43,3 +43,26 @@ func TestRenderPreviewOfficial(t *testing.T) {
 		t.Fatalf("official preview = %q", out)
 	}
 }
+
+// TestRenderPreviewKeysDoNotWrap 防止长 env key 在预览窄列里折行成多行碎片。
+func TestRenderPreviewKeysDoNotWrap(t *testing.T) {
+	p := profile.Profile{Description: "d", Env: map[string]string{}}
+	for _, k := range profile.ManagedEnvKeys {
+		p.Env[k] = "v"
+	}
+
+	out := renderPreview("demo", p)
+
+	nonEmpty := 0
+	for _, line := range strings.Split(out, "\n") {
+		if strings.TrimSpace(line) != "" {
+			nonEmpty++
+		}
+	}
+
+	// 预览标题 + 名称 + 描述 + 每个 env 字段，各占一行。
+	want := 3 + len(profile.ManagedEnvKeys)
+	if nonEmpty != want {
+		t.Fatalf("preview produced %d non-empty lines, want %d (key wrapping?):\n%s", nonEmpty, want, out)
+	}
+}

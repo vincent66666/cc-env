@@ -7,5 +7,5 @@ var (
 	titleStyle = lipgloss.NewStyle().Bold(true)
 	hintStyle  = lipgloss.NewStyle().Faint(true)
 	errStyle   = lipgloss.NewStyle().Bold(true)
-	previewKey = lipgloss.NewStyle().Width(8)
+	previewKey = lipgloss.NewStyle().Width(12)
 )
