@@ -691,6 +691,55 @@ func TestRun_CurrentReportsLoadErrorWhenProfilesFileIsInvalid(t *testing.T) {
 	}
 }
 
+func TestRun_NoArgsNonInteractivePrintsUnknownWhenCurrentProfileIsMissing(t *testing.T) {
+	call := stubClaudeLauncher(t)
+	profilesPath := filepath.Join(t.TempDir(), "profiles.json")
+	content := `{
+  "version": 1,
+  "current": "ghost",
+  "profiles": {
+    "demo": {
+      "env": {
+        "ANTHROPIC_AUTH_TOKEN": "token",
+        "ANTHROPIC_BASE_URL": "https://example.com"
+      }
+    }
+  }
+}
+`
+	if err := os.WriteFile(profilesPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write profiles fixture: %v", err)
+	}
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
+
+	var stdout, stderr bytes.Buffer
+	if code := Run(nil, &stdout, &stderr); code != 0 {
+		t.Fatalf("expected exit 0, got %d stderr=%q", code, stderr.String())
+	}
+	if got := stdout.String(); got != "当前配置：未知\n" {
+		t.Fatalf("expected unknown current status, got %q", got)
+	}
+	if call.called {
+		t.Fatalf("no-args non-interactive must not launch claude")
+	}
+}
+
+func TestRun_NoArgsNonInteractiveReportsLoadErrorWhenProfilesFileIsInvalid(t *testing.T) {
+	profilesPath := writeRawProfilesFixture(t, "{")
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
+
+	var stdout, stderr bytes.Buffer
+	if code := Run(nil, &stdout, &stderr); code != 1 {
+		t.Fatalf("expected exit 1, got %d", code)
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("expected empty stdout, got %q", got)
+	}
+	if got := stderr.String(); !strings.Contains(got, "加载配置失败：") {
+		t.Fatalf("expected load error stderr, got %q", got)
+	}
+}
+
 func writeProfilesFixture(t *testing.T, data profile.ProfilesFile) string {
 	t.Helper()
 

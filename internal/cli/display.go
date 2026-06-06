@@ -55,13 +55,6 @@ func profileDisplayName(name, description string) string {
 	return name + " - " + description
 }
 
-func currentDescription(name string, currentProfile profile.Profile) string {
-	if profile.IsOfficialName(name) {
-		return officialProfileDescription()
-	}
-	return currentProfile.Description
-}
-
 func officialProfileDescription() string {
 	return "官方登录态"
 }
