@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"cc-switch/internal/profile"
+	"cc-env/internal/profile"
 )
 
 func TestMain(m *testing.M) {
@@ -76,7 +76,7 @@ func envValue(env []string, key string) (string, bool) {
 }
 
 func TestRun_NoArgsShowsStatus(t *testing.T) {
-	t.Setenv("CC_SWITCH_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
+	t.Setenv("CC_ENV_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -131,7 +131,7 @@ func TestRun_UseLaunchesClaudeWithProfileEnvAndCurrentProfile(t *testing.T) {
 }
 `)
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 	t.Setenv(profile.EnvAuthToken, "old-token")
 	t.Setenv(profile.EnvBaseURL, "https://old.example.com")
@@ -230,7 +230,7 @@ func TestRun_UseRecoversFromMissingCurrentProfile(t *testing.T) {
 `)
 	settingsPath := writeSettingsFixture(t, `{"env":{"ANTHROPIC_AUTH_TOKEN":"old-token"}}`)
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 
 	var stdout bytes.Buffer
@@ -275,7 +275,7 @@ func TestRun_UseIgnoresInvalidSettingsAndAdvancesCurrent(t *testing.T) {
 	})
 	settingsPath := writeSettingsFixture(t, `{"env":`)
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 
 	var stdout bytes.Buffer
@@ -317,7 +317,7 @@ func TestRun_UseTrimsNameArgument(t *testing.T) {
 	})
 	settingsPath := writeSettingsFixture(t, `{"env":{"ANTHROPIC_AUTH_TOKEN":"old-token"}}`)
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 
 	var stdout bytes.Buffer
@@ -353,7 +353,7 @@ func TestRun_UseWithoutNameUsesCurrentProfile(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -375,7 +375,7 @@ func TestRun_UseDefaultsToOfficialAndClearsManagedEnv(t *testing.T) {
 	call := stubClaudeLauncher(t)
 	profilesPath := filepath.Join(t.TempDir(), "profiles.json")
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	for _, key := range profile.ManagedEnvKeys {
 		t.Setenv(key, "old-"+key)
 	}
@@ -415,7 +415,7 @@ func TestRun_OfficialNameIsReservedForProfileManagement(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	for _, tc := range []struct {
 		name string
@@ -445,7 +445,7 @@ func TestRun_AddPersistsProfile(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -504,7 +504,7 @@ func TestRun_AddTrimsNameArgumentAndRejectsNormalizedDuplicate(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var firstStdout bytes.Buffer
 	var firstStderr bytes.Buffer
@@ -567,7 +567,7 @@ func TestRun_EditUpdatesExistingProfile(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -624,7 +624,7 @@ func TestRun_EditTrimsNameArgument(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -654,7 +654,7 @@ func TestRun_AddRejectsMissingRequiredFields(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -675,7 +675,7 @@ func TestRun_AddRejectsMissingNameNonInteractive(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -700,7 +700,7 @@ func TestRun_AddRejectsMissingBaseURLNonInteractive(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -732,7 +732,7 @@ func TestRun_AddRejectsDuplicateName(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -758,7 +758,7 @@ func TestRun_AddInteractivePromptsForAllFields(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	promptOutput := withPromptSession(t, strings.Join([]string{
 		"demo",
@@ -824,7 +824,7 @@ func TestRun_AddInteractiveRejectsDuplicateNameBeforeFurtherPrompts(t *testing.T
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	promptOutput := withPromptSession(t, "demo\n")
 
@@ -851,7 +851,7 @@ func TestRun_AddInteractiveInterruptedInputFails(t *testing.T) {
 		Profiles: map[string]profile.Profile{},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	withPromptSession(t, "demo\n")
 
@@ -885,7 +885,7 @@ func TestRun_AddRealTTYCtrlDAbortsWithoutWrite(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTY(t, scriptPath, []string{"add"}, "demo\n\x04", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 
 	if exitCode == 0 {
@@ -910,7 +910,7 @@ func TestRun_AddRealTTYCtrlCAbortsWithoutWrite(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTY(t, scriptPath, []string{"add"}, "\x03", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 
 	if exitCode == 0 {
@@ -944,7 +944,7 @@ func TestRun_AddRealTTYBlankInputFails(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTY(t, scriptPath, []string{"add"}, "\n", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 
 	if exitCode == 0 {
@@ -974,7 +974,7 @@ func TestRun_EditInteractivePromptsAndKeepsExistingValuesOnBlank(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	promptOutput := withPromptSession(t, strings.Join([]string{
 		"",
@@ -1040,7 +1040,7 @@ func TestRun_EditInteractiveBlankOptionalFieldKeepsMissingKey(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	promptOutput := withPromptSession(t, strings.Join([]string{
 		"",
@@ -1088,7 +1088,7 @@ func TestRun_EditInteractiveInterruptedInputFailsWithoutMutation(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	withPromptSession(t, "")
 
@@ -1134,7 +1134,7 @@ func TestRun_EditRealTTYMultipleEntersKeepValues(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTY(t, scriptPath, []string{"edit", "demo"}, strings.Repeat("\n", 7), map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 
 	if exitCode != 0 {
@@ -1169,7 +1169,7 @@ func TestRun_EditInteractiveSkipsPromptForExplicitFields(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	promptOutput := withPromptSession(t, strings.Join([]string{
 		"",
@@ -1216,7 +1216,7 @@ func TestRun_EditInteractiveMasksShortToken(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	promptOutput := withPromptSession(t, strings.Join([]string{
 		"",
@@ -1271,7 +1271,7 @@ func TestRun_UseIgnoresUnwritableBackupDir(t *testing.T) {
 		t.Fatalf("write fake home file: %v", err)
 	}
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 	t.Setenv("HOME", homeFile)
 
@@ -1337,7 +1337,7 @@ func TestRun_UseRollsBackSettingsWhenUpdatingCurrentFails(t *testing.T) {
 		_ = os.Chmod(profilesDir, 0o755)
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 
 	var stdout bytes.Buffer
@@ -1385,7 +1385,7 @@ func TestRun_CustomPathsSupportAddUseAndCurrentFlow(t *testing.T) {
 	root := t.TempDir()
 	profilesPath := filepath.Join(root, "custom", "profiles.json")
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var addStdout bytes.Buffer
 	var addStderr bytes.Buffer
@@ -1448,7 +1448,7 @@ func TestRun_UseIgnoresCustomSettingsPath(t *testing.T) {
 	}
 	settingsPath := filepath.Join(settingsDirAsFile, "settings.json")
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	t.Setenv("CC_SWITCH_SETTINGS_PATH", settingsPath)
 
 	var stdout bytes.Buffer
@@ -1483,7 +1483,7 @@ func TestRun_RemoveRejectsCurrentProfile(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -1518,7 +1518,7 @@ func TestRun_RemoveDeletesNonCurrentProfile(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -1562,7 +1562,7 @@ func TestRun_RemoveTrimsNameArgument(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -1597,7 +1597,7 @@ func TestRun_RenameMovesProfileAndCurrentPointer(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -1644,7 +1644,7 @@ func TestRun_RenameTrimsNameArguments(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -1719,7 +1719,7 @@ func TestRun_StatusInteractiveArrowSelectionSwitchesProfile(t *testing.T) {
 	settingsPath := writeSettingsFixture(t, `{"env":{"ANTHROPIC_AUTH_TOKEN":"old-token"}}`)
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "\x1b[B\x1b[B\r", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH":    profilesPath,
 		"CC_SWITCH_SETTINGS_PATH": settingsPath,
 	})
 	if exitCode != 0 {
@@ -1765,7 +1765,7 @@ func TestRun_StatusInteractiveQuitLeavesCurrentUnchanged(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "q", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive status quit to succeed, output=%q", output)
@@ -1810,7 +1810,7 @@ func TestRun_StatusInteractiveUsesAlternateScreen(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "q", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive status alt-screen flow to succeed, output=%q", output)
@@ -1849,7 +1849,7 @@ func TestRun_StatusInteractiveAlternateScreenWrapsMultipleMoves(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "\x1b[B\x1b[Aq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected multi-move status flow to succeed, output=%q", output)
@@ -1885,7 +1885,7 @@ func TestRun_StatusInteractiveCtrlCLeavesCurrentUnchanged(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "\x03", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive status Ctrl+C to exit cleanly, output=%q", output)
@@ -1916,7 +1916,7 @@ func TestRun_StatusInteractiveWithoutAlternativesPrintsStatusOnly(t *testing.T) 
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, nil, "", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected status-only TTY run to succeed, output=%q", output)
@@ -2003,7 +2003,7 @@ func TestRun_StatusFallsBackToPlainTextWhenStdoutIsNotTTY(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	withPromptSession(t, "")
 
 	var stdout bytes.Buffer
@@ -2084,7 +2084,7 @@ func TestRun_StatusFallsBackToPlainTextWhenStdoutIsTTYAndStdinIsFile(t *testing.
 	})
 
 	exitCode, output := runWithTTYStdoutAndFileStdin(t, scriptPath, nil, "", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected tty-stdout/file-stdin status fallback to succeed, output=%q", output)
@@ -2128,7 +2128,7 @@ func TestRun_CurrentPrintsCurrentProfile(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2144,8 +2144,38 @@ func TestRun_CurrentPrintsCurrentProfile(t *testing.T) {
 	}
 }
 
+func TestRun_LegacyProfilesPathEnvFallback(t *testing.T) {
+	profilesPath := writeProfilesFixture(t, profile.ProfilesFile{
+		Version: 1,
+		Current: "demo",
+		Profiles: map[string]profile.Profile{
+			"demo": {
+				Env: map[string]string{
+					profile.EnvAuthToken: "token",
+					profile.EnvBaseURL:   "https://example.com",
+				},
+			},
+		},
+	})
+
+	t.Setenv("CC_ENV_PROFILES_PATH", "")
+	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run([]string{"current"}, &stdout, &stderr)
+	if exitCode != 0 {
+		t.Fatalf("expected legacy profiles path fallback to succeed, got %d, stderr=%q", exitCode, stderr.String())
+	}
+
+	if got := stdout.String(); got != "demo\n" {
+		t.Fatalf("expected current profile output through legacy path, got %q", got)
+	}
+}
+
 func TestRun_CurrentPrintsUnknownWhenProfilesFileIsMissing(t *testing.T) {
-	t.Setenv("CC_SWITCH_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
+	t.Setenv("CC_ENV_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2182,7 +2212,7 @@ func TestRun_CurrentPrintsUnknownWhenCurrentProfileIsMissing(t *testing.T) {
 		t.Fatalf("write profiles fixture: %v", err)
 	}
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2199,7 +2229,7 @@ func TestRun_CurrentPrintsUnknownWhenCurrentProfileIsMissing(t *testing.T) {
 
 func TestRun_CurrentReportsLoadErrorWhenProfilesFileIsInvalid(t *testing.T) {
 	profilesPath := writeRawProfilesFixture(t, "{")
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2231,7 +2261,7 @@ func TestRun_StatusPrintsUnknownWhenCurrentProfileIsMissing(t *testing.T) {
   }
 }
 `)
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2251,7 +2281,7 @@ func TestRun_StatusPrintsUnknownWhenCurrentProfileIsMissing(t *testing.T) {
 
 func TestRun_StatusReportsLoadErrorWhenProfilesFileIsInvalid(t *testing.T) {
 	profilesPath := writeRawProfilesFixture(t, "{")
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2270,7 +2300,7 @@ func TestRun_StatusReportsLoadErrorWhenProfilesFileIsInvalid(t *testing.T) {
 }
 
 func TestRun_ListPrintsOfficialWhenProfilesFileIsMissing(t *testing.T) {
-	t.Setenv("CC_SWITCH_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
+	t.Setenv("CC_ENV_PROFILES_PATH", filepath.Join(t.TempDir(), "profiles.json"))
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2310,7 +2340,7 @@ func TestRun_ListPrintsProfilesWhenCurrentProfileIsMissing(t *testing.T) {
   }
 }
 `)
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2330,7 +2360,7 @@ func TestRun_ListPrintsProfilesWhenCurrentProfileIsMissing(t *testing.T) {
 
 func TestRun_ListReportsLoadErrorWhenProfilesFileIsInvalid(t *testing.T) {
 	profilesPath := writeRawProfilesFixture(t, "{")
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2370,7 +2400,7 @@ func TestRun_ListPrintsProfiles(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2406,7 +2436,7 @@ func TestRun_ListFallsBackToPlainTextWhenStdoutIsNotTTY(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	withPromptSession(t, "")
 
 	var stdout bytes.Buffer
@@ -2443,7 +2473,7 @@ func TestRun_ListFallsBackToPlainTextWhenStdinIsNotTTY(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	oldPromptInteractive := promptInteractive
 	t.Cleanup(func() {
@@ -2490,7 +2520,7 @@ func TestRun_ListFallsBackToPlainTextWhenStdoutIsTTYAndStdinIsFile(t *testing.T)
 	})
 
 	exitCode, output := runWithTTYStdoutAndFileStdin(t, scriptPath, []string{"list"}, "", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected tty-stdout/file-stdin list fallback to succeed, output=%q", output)
@@ -2525,7 +2555,7 @@ func TestRun_ListPlainTextOmitsSeparatorWhenDescriptionIsEmpty(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	withPromptSession(t, "")
 
 	var stdout bytes.Buffer
@@ -2555,7 +2585,7 @@ func TestRun_ListPlainTextTrimsDescriptionWhitespace(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 	withPromptSession(t, "")
 
 	var stdout bytes.Buffer
@@ -2641,7 +2671,7 @@ func TestRun_ListInteractiveSwitchesSelectedProfile(t *testing.T) {
 	settingsPath := writeSettingsFixture(t, `{"env":{"ANTHROPIC_AUTH_TOKEN":"old-token"}}`)
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\x1b[B\x1b[B\r\r", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH":    profilesPath,
 		"CC_SWITCH_SETTINGS_PATH": settingsPath,
 	})
 	if exitCode != 0 {
@@ -2688,7 +2718,7 @@ func TestRun_ListInteractiveSwitchesSelectedProfileWhenCurrentProfileIsMissing(t
 	settingsPath := writeSettingsFixture(t, `{"env":{"ANTHROPIC_AUTH_TOKEN":"old-token"}}`)
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\rq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH":    profilesPath,
 		"CC_SWITCH_SETTINGS_PATH": settingsPath,
 	})
 	if exitCode != 0 {
@@ -2736,7 +2766,7 @@ func TestRun_ListInteractiveBackLeavesCurrentUnchanged(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\r\x1b[B\x1b[B\x1b[B\rq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list back flow to succeed, output=%q", output)
@@ -2780,7 +2810,7 @@ func TestRun_ListInteractiveUsesAlternateScreen(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "q", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list alt-screen flow to succeed, output=%q", output)
@@ -2813,7 +2843,7 @@ func TestRun_ListInteractiveActionMenuQuitClosesAlternateScreen(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\rq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected action-menu quit flow to succeed, output=%q", output)
@@ -2852,7 +2882,7 @@ func TestRun_ListInteractiveCurrentProfileActionsHideRemove(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\rq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive current-profile action menu to succeed, output=%q", output)
@@ -2888,7 +2918,7 @@ func TestRun_ListInteractiveDeleteConfirmQuitClosesAlternateScreen(t *testing.T)
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\x1b[B\r\x1b[B\x1b[B\x1b[B\rq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected delete-confirm quit flow to succeed, output=%q", output)
@@ -2935,7 +2965,7 @@ func TestRun_ListInteractiveCtrlCLeavesCurrentUnchanged(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\x03", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list Ctrl+C to exit cleanly, output=%q", output)
@@ -2981,7 +3011,7 @@ func TestRun_ListInteractiveEditUpdatesProfileAndReturnsToList(t *testing.T) {
 
 	input := "\x1b[B\r\x1b[B\r新描述\n\n\n\n\n\n\nq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list edit to succeed, output=%q", output)
@@ -3024,7 +3054,7 @@ func TestRun_ListInteractiveEditReentersAlternateScreenAfterSuccess(t *testing.T
 
 	input := "\x1b[B\r\x1b[B\r新描述\n\n\n\n\n\n\nq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list edit alt-screen flow to succeed, output=%q", output)
@@ -3065,7 +3095,7 @@ func TestRun_ListInteractiveRenameUpdatesProfileAndReturnsToList(t *testing.T) {
 
 	input := "\x1b[B\r\x1b[B\x1b[B\rstaging\nq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list rename to succeed, output=%q", output)
@@ -3117,7 +3147,7 @@ func TestRun_ListInteractiveRenameCurrentProfileUpdatesCurrentAndReentersList(t 
 
 	input := "\r\x1b[B\x1b[B\rprod\nq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive current-profile rename to succeed, output=%q", output)
@@ -3176,7 +3206,7 @@ func TestRun_ListInteractiveRemoveConfirmsAndRefreshesList(t *testing.T) {
 
 	input := "\x1b[B\r\x1b[B\x1b[B\x1b[B\r\rq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list remove to succeed, output=%q", output)
@@ -3224,7 +3254,7 @@ func TestRun_ListInteractiveRemoveReentersAlternateScreenAfterSuccess(t *testing
 
 	input := "\x1b[B\r\x1b[B\x1b[B\x1b[B\r\rq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list remove alt-screen flow to succeed, output=%q", output)
@@ -3257,7 +3287,7 @@ func TestRun_ListInteractiveRemoveLastProfileShowsEmptyState(t *testing.T) {
 
 	input := "\r\x1b[B\x1b[B\x1b[B\r\rq"
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, input, map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected interactive list remove-last flow to succeed, output=%q", output)
@@ -3294,7 +3324,7 @@ func TestRun_ListInteractiveEmptyStateQuitClosesAlternateScreen(t *testing.T) {
 	})
 
 	exitCode, output := runWithTTYBestEffort(t, scriptPath, []string{"list"}, "\r\x1b[B\x1b[B\x1b[B\r\rq", map[string]string{
-		"CC_SWITCH_PROFILES_PATH": profilesPath,
+		"CC_ENV_PROFILES_PATH": profilesPath,
 	})
 	if exitCode != 0 {
 		t.Fatalf("expected empty-state quit flow to succeed, output=%q", output)
@@ -3334,7 +3364,7 @@ func TestRun_NoArgsShowsBaseURLAndModel(t *testing.T) {
 		},
 	})
 
-	t.Setenv("CC_SWITCH_PROFILES_PATH", profilesPath)
+	t.Setenv("CC_ENV_PROFILES_PATH", profilesPath)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

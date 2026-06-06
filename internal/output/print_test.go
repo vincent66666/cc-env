@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"cc-switch/internal/profile"
+	"cc-env/internal/profile"
 )
 
 func TestRenderStatusPlainOutputWhenWriterIsNotTTY(t *testing.T) {

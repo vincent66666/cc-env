@@ -17,7 +17,7 @@
 **Files:**
 - Modify: `internal/cli/app_test.go`
 
-- [ ] Add failing TTY tests for `cc-switch` and `cc-switch list` proving `Ctrl+C` exits cleanly during interactive selection.
+- [ ] Add failing TTY tests for `cc-env` and `cc-env list` proving `Ctrl+C` exits cleanly during interactive selection.
 - [ ] Run the targeted tests and confirm they fail for the expected reason.
 
 ### Task 2: Implement Safe Ctrl+C Handling
@@ -55,7 +55,7 @@
 - Modify: `README.md`
 - Modify: `docs/usage.md`
 
-- [ ] Update `cc-switch` and `cc-switch list` examples to match the current Chinese output and interactive TTY behavior.
+- [ ] Update `cc-env` and `cc-env list` examples to match the current Chinese output and interactive TTY behavior.
 - [ ] Keep non-interactive examples explicit where needed to avoid ambiguity.
 
 ## Chunk 4: Verification

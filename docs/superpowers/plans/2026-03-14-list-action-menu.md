@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `cc-switch list` enter an interactive two-level menu in TTY mode, allowing profile selection and actions for switch, edit, remove, and back.
+**Goal:** Make `cc-env list` enter an interactive two-level menu in TTY mode, allowing profile selection and actions for switch, edit, remove, and back.
 
-**Architecture:** Reuse the existing TTY interaction pattern added for `cc-switch` status mode, but add a dedicated list selector state machine for a profile list screen and an action menu screen. Keep non-interactive `cc-switch list` unchanged so scripts still receive plain text output.
+**Architecture:** Reuse the existing TTY interaction pattern added for `cc-env` status mode, but add a dedicated list selector state machine for a profile list screen and an action menu screen. Keep non-interactive `cc-env list` unchanged so scripts still receive plain text output.
 
 **Tech Stack:** Go standard library, existing Darwin raw-terminal helper, ANSI escape sequences, existing CLI tests.
 
@@ -54,7 +54,7 @@ Expected: PASS
 - [ ] **Step 1: Write the failing tests**
 
 Add TTY tests for:
-- `cc-switch list` showing the interactive list in TTY mode
+- `cc-env list` showing the interactive list in TTY mode
 - selecting a profile, entering the action menu, choosing `切换`, and switching successfully
 - entering the action menu and choosing `返回` without changing current profile
 

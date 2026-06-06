@@ -94,7 +94,7 @@ func TestWriteEnv_CreatesBackupBeforeWrite(t *testing.T) {
 		t.Fatalf("write env failed: %v", err)
 	}
 
-	backupPath := filepath.Join(dir, ".claude", "cc-switch", "backups", "settings.json.20260313T150102Z.bak")
+	backupPath := filepath.Join(dir, ".claude", "cc-env", "backups", "settings.json.20260313T150102Z.bak")
 	backupContent, err := os.ReadFile(backupPath)
 	if err != nil {
 		t.Fatalf("read backup: %v", err)
@@ -132,7 +132,7 @@ func TestWriteEnv_CreatesDistinctBackupsForWritesInSameSecond(t *testing.T) {
 		t.Fatalf("second write env failed: %v", err)
 	}
 
-	backupDir := filepath.Join(dir, ".claude", "cc-switch", "backups")
+	backupDir := filepath.Join(dir, ".claude", "cc-env", "backups")
 	entries, err := os.ReadDir(backupDir)
 	if err != nil {
 		t.Fatalf("read backup dir: %v", err)

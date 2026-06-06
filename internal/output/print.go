@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"cc-switch/internal/profile"
+	"cc-env/internal/profile"
 )
 
 func RenderStatus(w io.Writer, currentDisplay string, currentProfile profile.Profile, names []string) int {

@@ -17,7 +17,7 @@
 **Files:**
 - Modify: `internal/cli/app_test.go`
 
-- [ ] Add a failing test proving `cc-switch` stays in plain-text mode when stdout is not interactive.
+- [ ] Add a failing test proving `cc-env` stays in plain-text mode when stdout is not interactive.
 - [ ] Run a Linux-targeted compile check and confirm the package currently fails because `makeRawTerminal` is missing.
 
 ### Task 2: Implement compatibility fixes

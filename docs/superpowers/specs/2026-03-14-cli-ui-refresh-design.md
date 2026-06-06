@@ -1,8 +1,8 @@
-# cc-switch CLI UI Refresh Design
+# cc-env CLI UI Refresh Design
 
 ## 背景
 
-`cc-switch` 当前已经具备完整的 profile 管理能力，但终端界面的信息层次偏弱：
+`cc-env` 当前已经具备完整的 profile 管理能力，但终端界面的信息层次偏弱：
 
 - 普通输出基本是线性文本，`list/current/status` 的信息密度和可扫读性不一致。
 - 交互式列表主要依赖 `> ` 前缀区分选中项，当前配置、可执行动作和危险操作的提示不够明显。
@@ -64,7 +64,7 @@
 
 ### 2. 普通输出
 
-涉及 [`internal/output/print.go`](/Users/liuzhiqiang/DevOps/cc-switch/internal/output/print.go) 和新增样式辅助文件。
+涉及 [`internal/output/print.go`](/Users/liuzhiqiang/DevOps/cc-env/internal/output/print.go) 和新增样式辅助文件。
 
 - `current` / `status` 统一为同一套详情样式：当前配置、接口地址、模型分组显示。
 - `list` 从单列裸输出改成分组输出：
@@ -75,7 +75,7 @@
 
 ### 3. `list` 交互界面
 
-涉及 [`internal/cli/list_menu.go`](/Users/liuzhiqiang/DevOps/cc-switch/internal/cli/list_menu.go) 与 [`internal/cli/app.go`](/Users/liuzhiqiang/DevOps/cc-switch/internal/cli/app.go)。
+涉及 [`internal/cli/list_menu.go`](/Users/liuzhiqiang/DevOps/cc-env/internal/cli/list_menu.go) 与 [`internal/cli/app.go`](/Users/liuzhiqiang/DevOps/cc-env/internal/cli/app.go)。
 
 - 页面分成三段：
   - 顶部：标题和上下文说明
@@ -92,7 +92,7 @@
 
 ### 4. `status` 交互界面
 
-涉及 [`internal/cli/status_selector.go`](/Users/liuzhiqiang/DevOps/cc-switch/internal/cli/status_selector.go)。
+涉及 [`internal/cli/status_selector.go`](/Users/liuzhiqiang/DevOps/cc-env/internal/cli/status_selector.go)。
 
 - 采用和 `list` 一致的标题、字段、底部提示风格。
 - 保持更轻的操作模型：上下选择，`Enter` 直接切换，`q` 退出。

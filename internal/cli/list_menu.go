@@ -3,7 +3,7 @@ package cli
 import (
 	"strings"
 
-	"cc-switch/internal/profile"
+	"cc-env/internal/profile"
 )
 
 type listMenuMode int

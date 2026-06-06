@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `cc-switch` show current status plus an arrow-key selectable profile list in interactive terminals, and switch on Enter.
+**Goal:** Make `cc-env` show current status plus an arrow-key selectable profile list in interactive terminals, and switch on Enter.
 
 **Architecture:** Keep the existing non-interactive text output path intact. Add a small terminal selector in `internal/cli` for interactive TTY sessions only, with a pure rendering/navigation layer and a thin raw-terminal integration layer.
 
@@ -54,14 +54,14 @@ Expected: PASS
 - [ ] **Step 1: Write the failing tests**
 
 Add TTY tests for:
-- `cc-switch` showing a selectable list when alternatives exist
+- `cc-env` showing a selectable list when alternatives exist
 - pressing ArrowDown + Enter switching to the highlighted profile
 - pressing `q` exiting without changing current profile
 
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `go test ./internal/cli -run 'TestRun_StatusInteractive' -count=1`
-Expected: FAIL because `cc-switch` still prints plain text only.
+Expected: FAIL because `cc-env` still prints plain text only.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -90,7 +90,7 @@ Expected: PASS
 
 Cover:
 - no available profiles still prints status only
-- non-interactive `cc-switch` still returns plain text output
+- non-interactive `cc-env` still returns plain text output
 
 - [ ] **Step 2: Run targeted tests**
 

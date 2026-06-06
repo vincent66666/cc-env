@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"cc-switch/internal/output"
-	"cc-switch/internal/profile"
+	"cc-env/internal/output"
+	"cc-env/internal/profile"
 )
 
 type Paths struct {
@@ -98,9 +98,12 @@ func Run(args []string, stdout, stderr io.Writer) int {
 }
 
 func defaultPaths() Paths {
-	profilesPath := os.Getenv("CC_SWITCH_PROFILES_PATH")
+	profilesPath := os.Getenv("CC_ENV_PROFILES_PATH")
 	if profilesPath == "" {
-		profilesPath = os.ExpandEnv("$HOME/.claude/cc-switch/profiles.json")
+		profilesPath = os.Getenv("CC_SWITCH_PROFILES_PATH")
+	}
+	if profilesPath == "" {
+		profilesPath = os.ExpandEnv("$HOME/.claude/cc-env/profiles.json")
 	}
 
 	return Paths{

@@ -1,37 +1,39 @@
-# cc-switch
+# cc-env
 
-`cc-switch` 是一个独立 CLI，用来管理 Claude Code 的第三方 API profile，并通过启动 `claude` 子进程时注入环境变量来切换模式。
+`cc-env` 是一个独立 CLI，用来管理 Claude Code 的第三方 API profile，并通过启动 `claude` 子进程时注入环境变量来切换模式。
 
 它不再写入 `~/.claude/settings.json`，因此不会污染官方 Claude 登录态。官方登录态通过内置的 `official` 模式表示：启动前清理所有受管理的第三方路由变量，然后直接运行 `claude`。
 
 ## 功能概览
 
-- 用 `~/.claude/cc-switch/profiles.json` 保存多个第三方 API profile
-- 用 `cc-switch use <profile|official>` 保存当前模式并启动 `claude`
-- 用 `cc-switch use` 按当前模式启动；如果 current 为空，则默认使用 `official`
+- 用 `~/.claude/cc-env/profiles.json` 保存多个第三方 API profile
+- 用 `cc-env use <profile|official>` 保存当前模式并启动 `claude`
+- 用 `cc-env use` 按当前模式启动；如果 current 为空，则默认使用 `official`
 - 支持把 `--` 后的参数原样传给 `claude`
 - 支持新增、编辑、删除、重命名第三方 profile
 - `official` 是内置保留名，不能作为普通 profile 使用
 
 ## 默认文件路径
 
-- profiles 仓库：`~/.claude/cc-switch/profiles.json`
+- profiles 仓库：`~/.claude/cc-env/profiles.json`
 
 也可以通过环境变量覆盖默认路径：
 
-- `CC_SWITCH_PROFILES_PATH`
+- `CC_ENV_PROFILES_PATH`
+
+兼容旧变量 `CC_SWITCH_PROFILES_PATH`，但新配置优先使用 `CC_ENV_PROFILES_PATH`。
 
 ## 安装
 
 ```bash
-go build -o cc-switch .
+go build -o cc-env .
 ```
 
-构建完成后会得到当前目录下的 `cc-switch` 可执行文件。
+构建完成后会得到当前目录下的 `cc-env` 可执行文件。
 
 ## 数据结构
 
-`~/.claude/cc-switch/profiles.json` 的结构如下：
+`~/.claude/cc-env/profiles.json` 的结构如下：
 
 ```json
 {
@@ -80,7 +82,7 @@ go build -o cc-switch .
 ### 查看状态
 
 ```bash
-cc-switch
+cc-env
 ```
 
 示例输出：
@@ -95,7 +97,7 @@ cc-switch
 ### 查看当前模式
 
 ```bash
-cc-switch current
+cc-env current
 ```
 
 示例输出：
@@ -107,7 +109,7 @@ deepseek
 ### 列出模式
 
 ```bash
-cc-switch list
+cc-env list
 ```
 
 非交互输出按普通 profile 名称排序，并在末尾包含内置 `official`：
@@ -120,13 +122,13 @@ official - 官方登录态
 ### 启动第三方 profile
 
 ```bash
-cc-switch use deepseek
+cc-env use deepseek
 ```
 
 传参给 Claude：
 
 ```bash
-cc-switch use deepseek -- --print "hello"
+cc-env use deepseek -- --print "hello"
 ```
 
 执行顺序：
@@ -141,7 +143,7 @@ cc-switch use deepseek -- --print "hello"
 ### 启动官方登录态
 
 ```bash
-cc-switch use official
+cc-env use official
 ```
 
 `official` 模式会清理第三方路由变量后启动 `claude`，不会写入 token、base URL 或 model。
@@ -149,7 +151,7 @@ cc-switch use official
 ### 使用当前模式启动
 
 ```bash
-cc-switch use
+cc-env use
 ```
 
 如果 `current` 为空，默认按 `official` 启动。
@@ -159,7 +161,7 @@ cc-switch use
 新增 profile：
 
 ```bash
-cc-switch add deepseek \
+cc-env add deepseek \
   --description "DeepSeek" \
   --token "token-demo" \
   --base-url "https://api.deepseek.com/anthropic" \
@@ -175,19 +177,19 @@ cc-switch add deepseek \
 编辑 profile：
 
 ```bash
-cc-switch edit deepseek --model "deepseek-v4-pro"
+cc-env edit deepseek --model "deepseek-v4-pro"
 ```
 
 删除 profile：
 
 ```bash
-cc-switch remove deepseek
+cc-env remove deepseek
 ```
 
 重命名 profile：
 
 ```bash
-cc-switch rename deepseek ds
+cc-env rename deepseek ds
 ```
 
 限制：
@@ -212,8 +214,8 @@ go build ./...
 
 ## 文件说明
 
-- [main.go](/Users/liuzhiqiang/DevOps/cc-switch/main.go)：CLI 入口
-- [internal/cli/app.go](/Users/liuzhiqiang/DevOps/cc-switch/internal/cli/app.go)：命令分发、参数处理和 Claude 启动
-- [internal/profile/store.go](/Users/liuzhiqiang/DevOps/cc-switch/internal/profile/store.go)：`profiles.json` 读写
-- [internal/profile/validate.go](/Users/liuzhiqiang/DevOps/cc-switch/internal/profile/validate.go)：profile 校验规则
-- [internal/settings/store.go](/Users/liuzhiqiang/DevOps/cc-switch/internal/settings/store.go)：旧 settings 写入实现，目前 CLI 不再调用
+- [main.go](main.go)：CLI 入口
+- [internal/cli/app.go](internal/cli/app.go)：命令分发、参数处理和 Claude 启动
+- [internal/profile/store.go](internal/profile/store.go)：`profiles.json` 读写
+- [internal/profile/validate.go](internal/profile/validate.go)：profile 校验规则
+- [internal/settings/store.go](internal/settings/store.go)：旧 settings 写入实现，目前 CLI 不再调用

@@ -18,7 +18,7 @@ func BackupFile(path string, now func() time.Time) (string, error) {
 		return "", err
 	}
 
-	backupDir := filepath.Join(homeDir, ".claude", "cc-switch", "backups")
+	backupDir := filepath.Join(homeDir, ".claude", "cc-env", "backups")
 	if err := os.MkdirAll(backupDir, 0o755); err != nil {
 		return "", err
 	}

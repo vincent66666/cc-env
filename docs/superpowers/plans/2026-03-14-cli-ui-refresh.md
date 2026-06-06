@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Improve the readability and interaction quality of `cc-switch` terminal UI while keeping non-TTY output stable and preserving current business behavior.
+**Goal:** Improve the readability and interaction quality of `cc-env` terminal UI while keeping non-TTY output stable and preserving current business behavior.
 
 **Architecture:** Extend the existing rendering code instead of introducing a new TUI framework. Add a small ANSI style layer for TTY output, then incrementally enhance `list` and `status` interactive renderers and key handling with test-first changes.
 

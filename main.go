@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"cc-switch/internal/cli"
+	"cc-env/internal/cli"
 )
 
 func main() {
