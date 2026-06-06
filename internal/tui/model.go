@@ -25,7 +25,6 @@ type Model struct {
 	list         list.Model
 	form         formModel
 	confirmName  string
-	current      string
 	err          string
 	result       Result
 	width        int
@@ -52,7 +51,6 @@ func newModel(profilesPath string) (Model, error) {
 		profilesPath: profilesPath,
 		state:        stateList,
 		list:         l,
-		current:      data.Current,
 	}, nil
 }
 
@@ -61,13 +59,25 @@ func (m Model) paneHeight() int {
 	return max(m.height-4, 3)
 }
 
+// twoPaneMinWidth 是显示「列表+预览」双栏所需的最小终端宽度，低于此值退化为单栏。
+const twoPaneMinWidth = 60
+
+func (m Model) twoPane() bool { return m.width >= twoPaneMinWidth }
+
+// listWidth 返回列表卡片内容宽度：双栏用固定侧栏宽，单栏占满终端。
+func (m Model) listWidth() int {
+	if m.twoPane() {
+		return 24
+	}
+	return max(m.width-4, 10)
+}
+
 // reload 重新从磁盘读取并重建列表项。
 func (m *Model) reload() error {
 	data, err := profile.LoadForList(m.profilesPath)
 	if err != nil {
 		return err
 	}
-	m.current = data.Current
 	m.list.SetItems(buildItems(data))
 	return nil
 }
@@ -126,7 +136,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(24, m.paneHeight())
+		m.list.SetSize(m.listWidth(), m.paneHeight())
 		return m, nil
 	case tea.KeyMsg:
 		switch m.state {
@@ -268,23 +278,28 @@ func (m Model) View() string {
 }
 
 func (m Model) viewList() string {
-	preview := ""
-	if it, ok := m.selectedItem(); ok {
-		data, _ := profile.LoadForList(m.profilesPath)
-		preview = renderPreview(it.name, it.current, data.Profiles[it.name])
-	}
-
 	h := m.paneHeight()
 	left := listBox.Height(h).Render(m.list.View())
-	// 预览卡片宽度由剩余终端宽度决定，保持稳定（不随选中项内容长短跳动）。
-	previewInner := max(m.width-lipgloss.Width(left)-5, 24)
-	right := previewBox.Width(previewInner).Height(h).Render(preview)
-	body := lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right)
 
 	hint := hintStyle.Render("Enter 切换并启动  a 新建  e 编辑  d 删除  / 过滤  q 退出")
 	if m.err != "" {
 		hint = errStyle.Render(m.err) + "\n" + hint
 	}
+
+	// 窄终端（含首帧 width==0）退化为单栏，只显示列表，避免双栏宽度溢出错乱。
+	if !m.twoPane() {
+		return left + "\n" + hint
+	}
+
+	preview := ""
+	if it, ok := m.selectedItem(); ok {
+		data, _ := profile.LoadForList(m.profilesPath)
+		preview = renderPreview(it.name, it.current, data.Profiles[it.name])
+	}
+	// 预览卡片宽度由剩余终端宽度决定，保持稳定（不随选中项内容长短跳动）。
+	previewInner := max(m.width-lipgloss.Width(left)-5, 24)
+	right := previewBox.Width(previewInner).Height(h).Render(preview)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right)
 	return body + "\n" + hint
 }
 
