@@ -309,7 +309,7 @@ func (m Model) viewForm() string {
 	if m.form.original != "" {
 		title = "编辑配置：" + m.form.original
 	}
-	b.WriteString(titleStyle.Render(title) + "\n\n")
+	b.WriteString(previewTitle.Render(title) + "\n\n")
 	for i, fld := range textFields {
 		cursor := "  "
 		if m.form.focus == i {
@@ -329,14 +329,18 @@ func (m Model) viewForm() string {
 		b.WriteString(cursor + mark + " " + fld.label + "\n")
 	}
 	if m.form.err != "" {
-		b.WriteString("\n" + errStyle.Render(m.form.err) + "\n")
+		b.WriteString("\n" + errStyle.Render(m.form.err))
 	}
-	b.WriteString("\n" + hintStyle.Render("Tab/↑↓ 切换字段  Space 切换开关  Enter 保存  Esc 取消"))
-	return b.String()
+
+	card := formBox.Render(strings.TrimRight(b.String(), "\n"))
+	hint := hintStyle.Render("Tab/↑↓ 切换字段  Space 切换开关  Enter 保存  Esc 取消")
+	return card + "\n" + hint
 }
 
 func (m Model) viewConfirm() string {
-	return titleStyle.Render("删除配置") + "\n\n" +
-		"确认删除 " + m.confirmName + "？此操作不可恢复。\n\n" +
-		hintStyle.Render("y 确认  n 取消")
+	body := errStyle.Render("删除配置") + "\n\n" +
+		"确认删除 " + m.confirmName + "？此操作不可恢复。"
+	card := confirmBox.Render(body)
+	hint := hintStyle.Render("y 确认  n 取消")
+	return card + "\n" + hint
 }

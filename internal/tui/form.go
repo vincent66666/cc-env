@@ -56,6 +56,7 @@ func newForm(editing string, existing profile.Profile) formModel {
 	for i, fld := range textFields {
 		in := textinput.New()
 		in.Prompt = ""
+		in.Width = 36
 		if fld.secret {
 			in.EchoMode = textinput.EchoPassword
 			in.EchoCharacter = '•'
