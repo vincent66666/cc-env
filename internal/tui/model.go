@@ -28,6 +28,8 @@ type Model struct {
 	current      string
 	err          string
 	result       Result
+	width        int
+	height       int
 }
 
 func newModel(profilesPath string) (Model, error) {
@@ -36,8 +38,13 @@ func newModel(profilesPath string) (Model, error) {
 		return Model{}, err
 	}
 
+	// 选中行用强调色，与右侧预览卡片边框一致，建立左右关联。
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.Foreground(accent).BorderForeground(accent)
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.Foreground(accent).BorderForeground(accent)
+
 	items := buildItems(data)
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	l := list.New(items, delegate, 0, 0)
 	l.Title = "配置"
 	l.SetShowHelp(false)
 
@@ -47,6 +54,11 @@ func newModel(profilesPath string) (Model, error) {
 		list:         l,
 		current:      data.Current,
 	}, nil
+}
+
+// paneHeight 返回卡片内容高度（终端高度减去边框与底部提示行）。
+func (m Model) paneHeight() int {
+	return max(m.height-4, 3)
 }
 
 // reload 重新从磁盘读取并重建列表项。
@@ -112,7 +124,9 @@ func (m Model) selectedItem() (profileItem, bool) {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetSize(msg.Width, msg.Height-2)
+		m.width = msg.Width
+		m.height = msg.Height
+		m.list.SetSize(24, m.paneHeight())
 		return m, nil
 	case tea.KeyMsg:
 		switch m.state {
@@ -257,9 +271,16 @@ func (m Model) viewList() string {
 	preview := ""
 	if it, ok := m.selectedItem(); ok {
 		data, _ := profile.LoadForList(m.profilesPath)
-		preview = renderPreview(it.name, data.Profiles[it.name])
+		preview = renderPreview(it.name, it.current, data.Profiles[it.name])
 	}
-	body := lipgloss.JoinHorizontal(lipgloss.Top, paneStyle.Render(m.list.View()), preview)
+
+	h := m.paneHeight()
+	left := listBox.Height(h).Render(m.list.View())
+	// 预览卡片宽度由剩余终端宽度决定，保持稳定（不随选中项内容长短跳动）。
+	previewInner := max(m.width-lipgloss.Width(left)-5, 24)
+	right := previewBox.Width(previewInner).Height(h).Render(preview)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right)
+
 	hint := hintStyle.Render("Enter 切换并启动  a 新建  e 编辑  d 删除  / 过滤  q 退出")
 	if m.err != "" {
 		hint = errStyle.Render(m.err) + "\n" + hint

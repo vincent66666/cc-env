@@ -14,15 +14,19 @@ func maskSecret(value string) string {
 	return value[:2] + strings.Repeat("*", len(value)-4) + value[len(value)-2:]
 }
 
-// renderPreview 渲染高亮 profile 的字段，token 遮罩。
-func renderPreview(name string, p profile.Profile) string {
+// renderPreview 渲染高亮 profile 的字段（token 遮罩）。
+// 标题用选中 profile 名（卡片由调用方加边框），以呼应左侧选中行。
+func renderPreview(name string, current bool, p profile.Profile) string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("预览") + "\n")
-	b.WriteString(previewKey.Render("名称") + name + "\n")
+	title := name
+	if current {
+		title += "（当前）"
+	}
+	b.WriteString(previewTitle.Render(title) + "\n\n")
 
 	if profile.IsOfficialName(name) {
-		b.WriteString(previewKey.Render("说明") + "官方登录态\n")
-		return paneStyle.Render(b.String())
+		b.WriteString("官方登录态")
+		return b.String()
 	}
 
 	if p.Description != "" {
@@ -38,7 +42,7 @@ func renderPreview(name string, p profile.Profile) string {
 		}
 		b.WriteString(previewKey.Render(shortKey(key)) + v + "\n")
 	}
-	return paneStyle.Render(b.String())
+	return strings.TrimRight(b.String(), "\n")
 }
 
 // shortKey 把受管 env key 映射为预览用短标签，避免长 key 在窄列里折行。

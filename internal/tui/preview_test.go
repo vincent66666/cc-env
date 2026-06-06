@@ -25,7 +25,7 @@ func TestRenderPreviewMasksToken(t *testing.T) {
 		profile.EnvBaseURL:   "https://x",
 		"ANTHROPIC_MODEL":    "m1",
 	}}
-	out := renderPreview("demo", p)
+	out := renderPreview("demo", false, p)
 	if !strings.Contains(out, "demo") || !strings.Contains(out, "m1") {
 		t.Fatalf("preview missing name/model: %q", out)
 	}
@@ -38,7 +38,7 @@ func TestRenderPreviewMasksToken(t *testing.T) {
 }
 
 func TestRenderPreviewOfficial(t *testing.T) {
-	out := renderPreview(profile.OfficialProfileName, profile.Profile{})
+	out := renderPreview(profile.OfficialProfileName, false, profile.Profile{})
 	if !strings.Contains(out, "官方登录态") {
 		t.Fatalf("official preview = %q", out)
 	}
@@ -51,7 +51,7 @@ func TestRenderPreviewKeysDoNotWrap(t *testing.T) {
 		p.Env[k] = "v"
 	}
 
-	out := renderPreview("demo", p)
+	out := renderPreview("demo", false, p)
 
 	nonEmpty := 0
 	for _, line := range strings.Split(out, "\n") {
@@ -60,8 +60,8 @@ func TestRenderPreviewKeysDoNotWrap(t *testing.T) {
 		}
 	}
 
-	// 预览标题 + 名称 + 描述 + 每个 env 字段，各占一行。
-	want := 3 + len(profile.ManagedEnvKeys)
+	// 标题 + 描述 + 每个 env 字段，各占一行。
+	want := 2 + len(profile.ManagedEnvKeys)
 	if nonEmpty != want {
 		t.Fatalf("preview produced %d non-empty lines, want %d (key wrapping?):\n%s", nonEmpty, want, out)
 	}
