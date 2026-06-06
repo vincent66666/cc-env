@@ -228,3 +228,41 @@ func TestFormToggleBoolField(t *testing.T) {
 		t.Fatalf("toggle did not flip bool[0]")
 	}
 }
+
+func TestConfirmYesDeletes(t *testing.T) {
+	path := writeProfiles(t, profile.ProfilesFile{Version: 1, Current: "keep", Profiles: map[string]profile.Profile{
+		"keep": {Env: map[string]string{profile.EnvAuthToken: "t", profile.EnvBaseURL: "https://x"}},
+		"gone": {Env: map[string]string{profile.EnvAuthToken: "t", profile.EnvBaseURL: "https://x"}},
+	}})
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m.state = stateConfirm
+	m.confirmName = "gone"
+	next, _ := m.Update(key("y"))
+	m = next.(Model)
+	if m.state != stateList {
+		t.Fatalf("confirm yes should return to list, got %v", m.state)
+	}
+	if _, ok := loadProfiles(t, path).Profiles["gone"]; ok {
+		t.Fatalf("gone not deleted")
+	}
+}
+
+func TestConfirmNoCancels(t *testing.T) {
+	path := writeProfiles(t, profile.ProfilesFile{Version: 1, Current: "keep", Profiles: map[string]profile.Profile{
+		"keep": {Env: map[string]string{profile.EnvAuthToken: "t", profile.EnvBaseURL: "https://x"}},
+		"gone": {Env: map[string]string{profile.EnvAuthToken: "t", profile.EnvBaseURL: "https://x"}},
+	}})
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m.state = stateConfirm
+	m.confirmName = "gone"
+	next, _ := m.Update(key("n"))
+	m = next.(Model)
+	if m.state != stateList {
+		t.Fatalf("confirm no should return to list")
+	}
+	if _, ok := loadProfiles(t, path).Profiles["gone"]; !ok {
+		t.Fatalf("gone should still exist after cancel")
+	}
+}

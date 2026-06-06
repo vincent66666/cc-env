@@ -209,8 +209,18 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if msg.Type == tea.KeyEsc {
+	switch msg.String() {
+	case "y", "Y", "enter":
+		if err := m.deleteSelected(m.confirmName); err != nil {
+			m.err = err.Error()
+		}
+		m.confirmName = ""
 		m.state = stateList
+		return m, nil
+	case "n", "N", "esc", "q":
+		m.confirmName = ""
+		m.state = stateList
+		return m, nil
 	}
 	return m, nil
 }
