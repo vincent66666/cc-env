@@ -101,3 +101,89 @@ func (m *Model) deleteSelected(name string) error {
 }
 
 func (m Model) Init() tea.Cmd { return nil }
+
+func (m Model) selectedItem() (profileItem, bool) {
+	it, ok := m.list.SelectedItem().(profileItem)
+	return it, ok
+}
+
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.list.SetSize(msg.Width, msg.Height-2)
+		return m, nil
+	case tea.KeyMsg:
+		switch m.state {
+		case stateList:
+			return m.updateList(msg)
+		case stateForm:
+			return m.updateForm(msg)
+		case stateConfirm:
+			return m.updateConfirm(msg)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// 过滤输入态下，字母交给 list 处理，不触发快捷键。
+	if m.list.FilterState() == list.Filtering {
+		var cmd tea.Cmd
+		m.list, cmd = m.list.Update(msg)
+		return m, cmd
+	}
+
+	switch msg.String() {
+	case "ctrl+c", keyQuit:
+		return m, tea.Quit
+	case "enter":
+		if it, ok := m.selectedItem(); ok {
+			m.result = Result{Target: it.name, Launch: true}
+			return m, tea.Quit
+		}
+	case keyAdd:
+		m.form = newForm("", profile.Profile{})
+		m.state = stateForm
+		m.err = ""
+		return m, nil
+	case keyEdit:
+		if it, ok := m.selectedItem(); ok && !it.official {
+			data, err := profile.LoadForList(m.profilesPath)
+			if err != nil {
+				m.err = err.Error()
+				return m, nil
+			}
+			m.form = newForm(it.name, data.Profiles[it.name])
+			m.state = stateForm
+			m.err = ""
+		}
+		return m, nil
+	case keyDelete:
+		if it, ok := m.selectedItem(); ok && !it.official && !it.current {
+			m.confirmName = it.name
+			m.state = stateConfirm
+			m.err = ""
+		}
+		return m, nil
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if msg.Type == tea.KeyEsc {
+		m.state = stateList
+	}
+	return m, nil
+}
+
+func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if msg.Type == tea.KeyEsc {
+		m.state = stateList
+	}
+	return m, nil
+}
+
+func (m Model) View() string { return "" }

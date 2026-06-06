@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"cc-env/internal/profile"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func writeProfiles(t *testing.T, data profile.ProfilesFile) string {
@@ -93,5 +94,83 @@ func TestDeleteSelectedRemovesProfile(t *testing.T) {
 	}
 	if _, ok := loadProfiles(t, path).Profiles["gone"]; ok {
 		t.Fatalf("gone still present")
+	}
+}
+
+func key(s string) tea.KeyMsg {
+	switch s {
+	case "enter":
+		return tea.KeyMsg{Type: tea.KeyEnter}
+	case "ctrl+c":
+		return tea.KeyMsg{Type: tea.KeyCtrlC}
+	default:
+		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
+	}
+}
+
+func update(m Model, k tea.KeyMsg) Model {
+	next, _ := m.Update(k)
+	return next.(Model)
+}
+
+func TestEnterOnProfileSetsLaunchResult(t *testing.T) {
+	path := writeProfiles(t, sampleData())
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m = update(m, key("enter"))
+	if !m.result.Launch || m.result.Target != "kimi" {
+		t.Fatalf("result = %+v, want launch kimi", m.result)
+	}
+}
+
+func TestQuitDoesNotLaunch(t *testing.T) {
+	path := writeProfiles(t, sampleData())
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m = update(m, key("q"))
+	if m.result.Launch {
+		t.Fatalf("quit should not launch")
+	}
+}
+
+func TestPressAEntersForm(t *testing.T) {
+	path := writeProfiles(t, sampleData())
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m = update(m, key("a"))
+	if m.state != stateForm || m.form.original != "" {
+		t.Fatalf("state = %v original = %q, want form/add", m.state, m.form.original)
+	}
+}
+
+func TestPressDOnDeletableEntersConfirm(t *testing.T) {
+	path := writeProfiles(t, sampleData()) // current kimi; deepseek deletable
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m = update(m, key("j")) // 移动到 deepseek（第二项）
+	m = update(m, key("d"))
+	if m.state != stateConfirm || m.confirmName != "deepseek" {
+		t.Fatalf("state = %v confirm = %q", m.state, m.confirmName)
+	}
+}
+
+func TestPressDOnCurrentIgnored(t *testing.T) {
+	path := writeProfiles(t, sampleData()) // 首项 kimi 是 current
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m = update(m, key("d"))
+	if m.state != stateList {
+		t.Fatalf("delete on current should stay in list, got %v", m.state)
+	}
+}
+
+func TestPressDOnOfficialIgnored(t *testing.T) {
+	path := writeProfiles(t, sampleData())
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m = update(m, key("G")) // 跳到末项 official（list 默认绑定 G=末尾）
+	m = update(m, key("d"))
+	if m.state != stateList {
+		t.Fatalf("delete on official should stay in list, got %v", m.state)
 	}
 }
