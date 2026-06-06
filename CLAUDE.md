@@ -28,7 +28,6 @@ internal/
     types.go         → Profile & ProfilesFile structs
     store.go         → Read/write profiles.json
     validate.go      → Profile validation rules
-  settings/          → Legacy settings.json integration, no longer called by CLI launch flow
   output/            → Terminal styling and formatted output helpers
 ```
 
