@@ -2,9 +2,11 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"cc-env/internal/profile"
 )
@@ -225,4 +227,65 @@ func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) View() string { return "" }
+func (m Model) View() string {
+	switch m.state {
+	case stateForm:
+		return m.viewForm()
+	case stateConfirm:
+		return m.viewConfirm()
+	default:
+		return m.viewList()
+	}
+}
+
+func (m Model) viewList() string {
+	preview := ""
+	if it, ok := m.selectedItem(); ok {
+		data, _ := profile.LoadForList(m.profilesPath)
+		preview = renderPreview(it.name, data.Profiles[it.name])
+	}
+	body := lipgloss.JoinHorizontal(lipgloss.Top, paneStyle.Render(m.list.View()), preview)
+	hint := hintStyle.Render("Enter 切换并启动  a 新建  e 编辑  d 删除  / 过滤  q 退出")
+	if m.err != "" {
+		hint = errStyle.Render(m.err) + "\n" + hint
+	}
+	return body + "\n" + hint
+}
+
+func (m Model) viewForm() string {
+	var b strings.Builder
+	title := "新建配置"
+	if m.form.original != "" {
+		title = "编辑配置：" + m.form.original
+	}
+	b.WriteString(titleStyle.Render(title) + "\n\n")
+	for i, fld := range textFields {
+		cursor := "  "
+		if m.form.focus == i {
+			cursor = "> "
+		}
+		b.WriteString(cursor + fld.label + "：" + m.form.inputs[i].View() + "\n")
+	}
+	for i, fld := range boolFields {
+		cursor := "  "
+		if m.form.focus == len(textFields)+i {
+			cursor = "> "
+		}
+		mark := "[ ]"
+		if m.form.bools[i] {
+			mark = "[x]"
+		}
+		b.WriteString(cursor + mark + " " + fld.label + "\n")
+	}
+	if m.form.err != "" {
+		b.WriteString("\n" + errStyle.Render(m.form.err) + "\n")
+	}
+	b.WriteString("\n" + hintStyle.Render("Tab/↑↓ 切换字段  Space 切换开关  Enter 保存  Esc 取消"))
+	return b.String()
+}
+
+func (m Model) viewConfirm() string {
+	return titleStyle.Render("删除配置") + "\n\n" +
+		"确认删除 " + m.confirmName + "？此操作不可恢复。\n\n" +
+		hintStyle.Render("y 确认  n 取消")
+}
