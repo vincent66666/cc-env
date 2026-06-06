@@ -8,10 +8,9 @@
 
 - 用 `~/.claude/cc-env/profiles.json` 保存多个第三方 API profile
 - 用 `cc-env <profile|official>` 保存当前模式并启动 `claude`
-- 用 `cc-env` 按 `official` 模式启动，清理第三方路由变量后使用 Claude 官方登录态
+- 通过 `cc-env` 进入交互界面完成新增/编辑/删除/重命名/切换
 - 支持把 profile 名后的参数原样传给 `claude`，也兼容用 `--` 显式分隔
-- 支持新增、编辑、删除、重命名第三方 profile
-- `official` 和内置命令名是保留名，不能作为普通 profile 使用
+- `official` 和 `current` 是保留名，不能作为普通 profile 使用
 
 ## 默认文件路径
 
@@ -79,20 +78,27 @@ go build -o cc-env .
 
 ## 使用方法
 
-### 查看状态
+### 交互界面
 
 ```bash
-cc-env status
+cc-env
 ```
 
-示例输出：
+无参数时进入 Bubble Tea 交互界面，可在此完成 profile 的选择、新增、编辑、删除等操作。
 
-```text
-当前配置：deepseek - DeepSeek
-接口地址：https://api.deepseek.com/anthropic
-模型：deepseek-v4-pro
-可用配置：official - 官方登录态
-```
+键位：
+
+| 按键 | 功能 |
+|------|------|
+| `↑` / `↓` · `j` / `k` | 上下选择 |
+| `Enter` | 切换到选中 profile 并启动 claude |
+| `a` | 新建 profile |
+| `e` | 编辑当前选中的 profile |
+| `d` | 删除当前选中的 profile |
+| `/` | 过滤 |
+| `q` | 退出（不切换） |
+
+> 非交互终端（管道/重定向）下，`cc-env` 打印当前配置状态后直接退出，不启动 claude。
 
 ### 查看当前模式
 
@@ -104,19 +110,6 @@ cc-env current
 
 ```text
 deepseek
-```
-
-### 列出模式
-
-```bash
-cc-env list
-```
-
-非交互输出按普通 profile 名称排序，并在末尾包含内置 `official`：
-
-```text
-deepseek - DeepSeek
-official - 官方登录态
 ```
 
 ### 启动第三方 profile
@@ -154,54 +147,10 @@ cc-env official
 
 `official` 模式会清理第三方路由变量后启动 `claude`，不会写入 token、base URL 或 model。
 
-### 默认启动
+## 限制
 
-```bash
-cc-env
-```
-
-不带参数时等价于 `cc-env official`。
-
-## Profile 管理
-
-新增 profile：
-
-```bash
-cc-env add deepseek \
-  --description "DeepSeek" \
-  --token "token-demo" \
-  --base-url "https://api.deepseek.com/anthropic" \
-  --model "deepseek-v4-pro" \
-  --default-opus-model "deepseek-v4-pro" \
-  --default-sonnet-model "deepseek-v4-pro" \
-  --default-haiku-model "deepseek-v4-flash" \
-  --subagent-model "deepseek-v4-flash" \
-  --disable-nonessential-traffic \
-  --disable-nonstreaming-fallback
-```
-
-编辑 profile：
-
-```bash
-cc-env edit deepseek --model "deepseek-v4-pro"
-```
-
-删除 profile：
-
-```bash
-cc-env remove deepseek
-```
-
-重命名 profile：
-
-```bash
-cc-env rename deepseek ds
-```
-
-限制：
-
-- `official` 是内置模式，不能新增、编辑、删除或重命名
-- `status`、`list`、`current`、`add`、`edit`、`remove`、`rename` 是内置命令名，不能作为普通 profile 名称
+- `official` 是内置模式，不能新增、编辑、删除
+- `current` 是保留名，不能作为普通 profile 名称
 - 不能删除当前正在使用的普通 profile
 - 第三方 profile 必须包含 token 和 base URL
 
@@ -222,7 +171,7 @@ go build ./...
 ## 文件说明
 
 - [main.go](main.go)：CLI 入口
-- [internal/cli/app.go](internal/cli/app.go)：命令分发、参数处理和 Claude 启动
+- [internal/cli/app.go](internal/cli/app.go)：命令分发与直达启动
+- [internal/tui/](internal/tui/)：Bubble Tea 交互界面
 - [internal/profile/store.go](internal/profile/store.go)：`profiles.json` 读写
 - [internal/profile/validate.go](internal/profile/validate.go)：profile 校验规则
-- [internal/settings/store.go](internal/settings/store.go)：旧 settings 写入实现，目前 CLI 不再调用
