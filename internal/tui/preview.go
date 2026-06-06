@@ -6,12 +6,14 @@ import (
 	"cc-env/internal/profile"
 )
 
-// maskSecret 遮罩敏感值，仅保留首尾两位。
+// maskSecret 遮罩敏感值，仅保留首尾两位；中间星号数量封顶，
+// 避免长 token 把预览撑宽/换行（也没必要展示真实长度）。
 func maskSecret(value string) string {
 	if len(value) <= 4 {
 		return "****"
 	}
-	return value[:2] + strings.Repeat("*", len(value)-4) + value[len(value)-2:]
+	stars := min(len(value)-4, 6)
+	return value[:2] + strings.Repeat("*", stars) + value[len(value)-2:]
 }
 
 // renderPreview 渲染高亮 profile 的字段（token 遮罩）。

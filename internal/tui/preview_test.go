@@ -19,6 +19,15 @@ func TestMaskSecretLong(t *testing.T) {
 	}
 }
 
+// TestMaskSecretCapsLength 防止长 token 遮罩后仍然很长导致预览换行。
+func TestMaskSecretCapsLength(t *testing.T) {
+	long := "sk-" + strings.Repeat("x", 80) + "ca"
+	got := maskSecret(long)
+	if len(got) != 10 { // 首2 + 6星 + 尾2
+		t.Fatalf("masked long secret = %q (len %d), want len 10", got, len(got))
+	}
+}
+
 func TestRenderPreviewMasksToken(t *testing.T) {
 	p := profile.Profile{Description: "Demo", Env: map[string]string{
 		profile.EnvAuthToken: "secrettoken",
