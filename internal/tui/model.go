@@ -124,7 +124,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateConfirm(msg)
 		}
 	}
-	return m, nil
+	// 非按键消息（list 过滤的 FilterMatchesMsg、光标闪烁等）转发给当前活动子组件，
+	// 否则 list 收不到过滤结果，/ 过滤将无效。
+	return m.forwardMsg(msg)
+}
+
+// forwardMsg 把非按键消息转发给当前活动子组件。
+func (m Model) forwardMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	if m.state == stateForm {
+		if m.form.focus < len(textFields) {
+			m.form.inputs[m.form.focus], cmd = m.form.inputs[m.form.focus].Update(msg)
+		}
+		return m, cmd
+	}
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
 }
 
 func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
