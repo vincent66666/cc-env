@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"cc-env/internal/profile"
@@ -22,8 +23,20 @@ func TestFormBuildRejectsMissingToken(t *testing.T) {
 	f.set("name", "demo")
 	f.set(profile.EnvBaseURL, "https://x")
 	// 不填 token
-	if _, _, err := f.build(); err == nil {
-		t.Fatalf("expected error for missing token")
+	_, _, err := f.build()
+	if err == nil || !strings.Contains(err.Error(), "ANTHROPIC_AUTH_TOKEN") {
+		t.Fatalf("expected required-token error, got %v", err)
+	}
+}
+
+func TestFormBuildRejectsMissingRequiredName(t *testing.T) {
+	f := newForm("", profile.Profile{})
+	f.set(profile.EnvAuthToken, "tok")
+	f.set(profile.EnvBaseURL, "https://x")
+	// 不填 name
+	_, _, err := f.build()
+	if err == nil || !strings.Contains(err.Error(), "名称") {
+		t.Fatalf("expected required-name error mentioning 名称, got %v", err)
 	}
 }
 

@@ -141,6 +141,12 @@ func (f *formModel) prev() {
 
 // build 把表单内容构造成 (name, profile)，并做保留名 + 校验。
 func (f formModel) build() (string, profile.Profile, error) {
+	for i, fld := range textFields {
+		if fld.required && strings.TrimSpace(f.inputs[i].Value()) == "" {
+			return "", profile.Profile{}, fmt.Errorf("%s 为必填项", fld.label)
+		}
+	}
+
 	name := f.value("name")
 
 	env := map[string]string{}
