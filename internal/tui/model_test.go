@@ -174,3 +174,57 @@ func TestPressDOnOfficialIgnored(t *testing.T) {
 		t.Fatalf("delete on official should stay in list, got %v", m.state)
 	}
 }
+
+func TestFormSubmitInvalidStaysInFormWithError(t *testing.T) {
+	path := writeProfiles(t, profile.ProfilesFile{Version: 1, Profiles: map[string]profile.Profile{}})
+	m, _ := newModel(path)
+	m.state = stateForm
+	m.form = newForm("", profile.Profile{}) // 全空，缺 name/token/base
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(Model)
+	if m.state != stateForm || m.form.err == "" {
+		t.Fatalf("invalid submit should stay in form with err, state=%v err=%q", m.state, m.form.err)
+	}
+}
+
+func TestFormSubmitValidReturnsToList(t *testing.T) {
+	path := writeProfiles(t, profile.ProfilesFile{Version: 1, Profiles: map[string]profile.Profile{}})
+	m, _ := newModel(path)
+	m.list.SetSize(40, 10)
+	m.state = stateForm
+	m.form = newForm("", profile.Profile{})
+	m.form.set("name", "demo")
+	m.form.set(profile.EnvAuthToken, "tok")
+	m.form.set(profile.EnvBaseURL, "https://x")
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(Model)
+	if m.state != stateList {
+		t.Fatalf("valid submit should return to list, got %v (err=%q)", m.state, m.form.err)
+	}
+	if _, ok := loadProfiles(t, path).Profiles["demo"]; !ok {
+		t.Fatalf("demo not persisted")
+	}
+}
+
+func TestFormEscCancels(t *testing.T) {
+	path := writeProfiles(t, profile.ProfilesFile{Version: 1, Profiles: map[string]profile.Profile{}})
+	m, _ := newModel(path)
+	m.state = stateForm
+	m.form = newForm("", profile.Profile{})
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = next.(Model)
+	if m.state != stateList {
+		t.Fatalf("esc should cancel form")
+	}
+}
+
+func TestFormToggleBoolField(t *testing.T) {
+	f := newForm("", profile.Profile{})
+	// 焦点移动到第一个 bool 字段并空格切换
+	idx := len(textFields) // 第一个 bool 的焦点序号
+	f.focus = idx
+	f.toggle()
+	if !f.bools[0] {
+		t.Fatalf("toggle did not flip bool[0]")
+	}
+}

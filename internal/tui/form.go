@@ -101,6 +101,42 @@ func (f formModel) value(key string) string {
 	return ""
 }
 
+func (f formModel) fieldCount() int { return len(textFields) + len(boolFields) }
+
+func (f formModel) onBool() (int, bool) {
+	bi := f.focus - len(textFields)
+	if bi >= 0 && bi < len(boolFields) {
+		return bi, true
+	}
+	return 0, false
+}
+
+func (f *formModel) toggle() {
+	if bi, ok := f.onBool(); ok {
+		f.bools[bi] = !f.bools[bi]
+	}
+}
+
+func (f *formModel) focusActive() {
+	for i := range f.inputs {
+		if i == f.focus {
+			f.inputs[i].Focus()
+		} else {
+			f.inputs[i].Blur()
+		}
+	}
+}
+
+func (f *formModel) next() {
+	f.focus = (f.focus + 1) % f.fieldCount()
+	f.focusActive()
+}
+
+func (f *formModel) prev() {
+	f.focus = (f.focus - 1 + f.fieldCount()) % f.fieldCount()
+	f.focusActive()
+}
+
 // build 把表单内容构造成 (name, profile)，并做保留名 + 校验。
 func (f formModel) build() (string, profile.Profile, error) {
 	name := f.value("name")

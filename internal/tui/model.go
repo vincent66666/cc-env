@@ -173,8 +173,37 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if msg.Type == tea.KeyEsc {
+	switch msg.Type {
+	case tea.KeyEsc:
 		m.state = stateList
+		return m, nil
+	case tea.KeyTab, tea.KeyDown:
+		m.form.next()
+		return m, nil
+	case tea.KeyShiftTab, tea.KeyUp:
+		m.form.prev()
+		return m, nil
+	case tea.KeyEnter:
+		if err := m.submitForm(); err != nil {
+			m.form.err = err.Error()
+			return m, nil
+		}
+		m.state = stateList
+		return m, nil
+	}
+
+	if msg.Type == tea.KeySpace {
+		if _, ok := m.form.onBool(); ok {
+			m.form.toggle()
+			return m, nil
+		}
+	}
+
+	// 文本字段：把按键交给当前聚焦的 textinput。
+	if m.form.focus < len(textFields) {
+		var cmd tea.Cmd
+		m.form.inputs[m.form.focus], cmd = m.form.inputs[m.form.focus].Update(msg)
+		return m, cmd
 	}
 	return m, nil
 }
