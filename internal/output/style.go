@@ -9,7 +9,6 @@ const (
 	ansiReset   = "\x1b[0m"
 	ansiBold    = "\x1b[1m"
 	ansiPrimary = "\x1b[36m"
-	ansiMuted   = "\x1b[90m"
 )
 
 var forcedStyledOutput *bool
@@ -67,14 +66,6 @@ func (s styler) current(text string) string {
 	}
 
 	return ansiBold + text + ansiReset
-}
-
-func (s styler) muted(text string) string {
-	if !s.enabled {
-		return text
-	}
-
-	return ansiMuted + text + ansiReset
 }
 
 func forceStyledOutputForTest(enabled bool) func() {

@@ -9,53 +9,53 @@ import (
 )
 
 func promptAddName(reader *bufio.Reader) (string, error) {
-	return promptAddValue(reader, "名称", "", true, false)
+	return promptAddValue(reader, "名称", "", true)
 }
 
 func promptRenameName(reader *bufio.Reader) (string, error) {
-	return promptAddValue(reader, "新名称", "", true, false)
+	return promptAddValue(reader, "新名称", "", true)
 }
 
 func promptAddFields(reader *bufio.Reader, input profileFlags) (profileFlags, error) {
 	var err error
 	if input.description == "" {
-		input.description, err = promptAddValue(reader, "描述", "（可选）", false, false)
+		input.description, err = promptAddValue(reader, "描述", "（可选）", false)
 		if err != nil {
 			return profileFlags{}, err
 		}
 	}
 	if input.token == "" {
-		input.token, err = promptAddValue(reader, profile.EnvAuthToken, "", true, false)
+		input.token, err = promptAddValue(reader, profile.EnvAuthToken, "", true)
 		if err != nil {
 			return profileFlags{}, err
 		}
 	}
 	if input.baseURL == "" {
-		input.baseURL, err = promptAddValue(reader, profile.EnvBaseURL, "", true, false)
+		input.baseURL, err = promptAddValue(reader, profile.EnvBaseURL, "", true)
 		if err != nil {
 			return profileFlags{}, err
 		}
 	}
 	if input.model == "" {
-		input.model, err = promptAddValue(reader, "ANTHROPIC_MODEL", "（可选）", false, false)
+		input.model, err = promptAddValue(reader, "ANTHROPIC_MODEL", "（可选）", false)
 		if err != nil {
 			return profileFlags{}, err
 		}
 	}
 	if input.defaultOpus == "" {
-		input.defaultOpus, err = promptAddValue(reader, "ANTHROPIC_DEFAULT_OPUS_MODEL", "（可选）", false, false)
+		input.defaultOpus, err = promptAddValue(reader, "ANTHROPIC_DEFAULT_OPUS_MODEL", "（可选）", false)
 		if err != nil {
 			return profileFlags{}, err
 		}
 	}
 	if input.defaultSonnet == "" {
-		input.defaultSonnet, err = promptAddValue(reader, "ANTHROPIC_DEFAULT_SONNET_MODEL", "（可选）", false, false)
+		input.defaultSonnet, err = promptAddValue(reader, "ANTHROPIC_DEFAULT_SONNET_MODEL", "（可选）", false)
 		if err != nil {
 			return profileFlags{}, err
 		}
 	}
 	if input.defaultHaiku == "" {
-		input.defaultHaiku, err = promptAddValue(reader, "ANTHROPIC_DEFAULT_HAIKU_MODEL", "（可选）", false, false)
+		input.defaultHaiku, err = promptAddValue(reader, "ANTHROPIC_DEFAULT_HAIKU_MODEL", "（可选）", false)
 		if err != nil {
 			return profileFlags{}, err
 		}
@@ -137,8 +137,7 @@ func applyEditPrompt(reader *bufio.Reader, env map[string]string, field, explici
 	return env, nil
 }
 
-func promptAddValue(reader *bufio.Reader, label, suffix string, required, sensitive bool) (string, error) {
-	_ = sensitive
+func promptAddValue(reader *bufio.Reader, label, suffix string, required bool) (string, error) {
 	_, _ = fmt.Fprintf(promptWriter, "%s%s：", label, suffix)
 	value, err := reader.ReadString('\n')
 	if err != nil {
