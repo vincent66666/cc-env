@@ -178,7 +178,6 @@ func (m listMenu) render() string {
 	switch m.mode {
 	case listMenuModeDeleteConfirm:
 		out.WriteString("删除配置\n")
-		out.WriteString("确认删除：" + m.profileDisplayName(m.selectedProfile()) + "\n")
 		out.WriteString("目标配置：" + m.profileDisplayName(m.selectedProfile()) + "\n")
 		out.WriteString("此操作不可恢复，请再次确认。\n\n")
 		for i, action := range listMenuConfirmActions {
@@ -190,7 +189,6 @@ func (m listMenu) render() string {
 		}
 	case listMenuModeActions:
 		out.WriteString("配置操作\n")
-		out.WriteString("操作：" + m.profileDisplayName(m.selectedProfile()) + "\n")
 		out.WriteString("目标配置：" + m.profileDisplayName(m.selectedProfile()) + "\n\n")
 		out.WriteString("可执行操作：\n")
 		for i, action := range m.actions() {

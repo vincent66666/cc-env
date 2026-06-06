@@ -2761,7 +2761,7 @@ func TestRun_ListInteractiveSwitchesSelectedProfile(t *testing.T) {
 		t.Fatalf("expected interactive list switch to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "配置列表：") || !strings.Contains(output, "操作：prod") {
+	if !strings.Contains(output, "配置列表：") || !strings.Contains(output, "目标配置：prod") {
 		t.Fatalf("expected list and action menu output, got %q", output)
 	}
 	if strings.Contains(output, "已切换到配置：") {
@@ -2811,7 +2811,7 @@ func TestRun_ListInteractiveSwitchesSelectedProfileWhenCurrentProfileIsMissing(t
 	if !strings.Contains(output, "配置列表：") {
 		t.Fatalf("expected list output before recovery switch, got %q", output)
 	}
-	if strings.Contains(output, "操作：") {
+	if strings.Contains(output, "可执行操作：") {
 		t.Fatalf("expected degraded interactive list to bypass action menu, got %q", output)
 	}
 	if strings.Contains(output, "已切换到配置：") {
@@ -2855,7 +2855,7 @@ func TestRun_ListInteractiveBackLeavesCurrentUnchanged(t *testing.T) {
 		t.Fatalf("expected interactive list back flow to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "操作：demo") {
+	if !strings.Contains(output, "目标配置：demo") {
 		t.Fatalf("expected action menu output, got %q", output)
 	}
 	if strings.Contains(output, "已切换到配置：") {
@@ -2971,7 +2971,7 @@ func TestRun_ListInteractiveCurrentProfileActionsHideRemove(t *testing.T) {
 		t.Fatalf("expected interactive current-profile action menu to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "操作：demo") {
+	if !strings.Contains(output, "目标配置：demo") {
 		t.Fatalf("expected current-profile action menu output, got %q", output)
 	}
 	if strings.Contains(output, "删除") {
@@ -3100,7 +3100,7 @@ func TestRun_ListInteractiveEditUpdatesProfileAndReturnsToList(t *testing.T) {
 		t.Fatalf("expected interactive list edit to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "操作：beta") || !strings.Contains(output, "已更新配置：beta") {
+	if !strings.Contains(output, "目标配置：beta") || !strings.Contains(output, "已更新配置：beta") {
 		t.Fatalf("expected edit flow output, got %q", output)
 	}
 
@@ -3295,7 +3295,7 @@ func TestRun_ListInteractiveRemoveConfirmsAndRefreshesList(t *testing.T) {
 		t.Fatalf("expected interactive list remove to succeed, output=%q", output)
 	}
 
-	if !strings.Contains(output, "确认删除：beta") || !strings.Contains(output, "已删除配置：beta") {
+	if !strings.Contains(output, "目标配置：beta") || !strings.Contains(output, "已删除配置：beta") {
 		t.Fatalf("expected delete confirmation flow output, got %q", output)
 	}
 

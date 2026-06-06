@@ -92,6 +92,10 @@ func TestListMenuEnterActionsAndBack(t *testing.T) {
 		}
 	}
 
+	if strings.Contains(rendered, "操作：beta") {
+		t.Fatalf("expected actions view to drop the redundant 操作 line, got %q", rendered)
+	}
+
 	menu.backToList()
 	if menu.mode != listMenuModeProfiles {
 		t.Fatalf("expected profile mode after back, got %v", menu.mode)
@@ -232,6 +236,10 @@ func TestListMenuEnterDeleteConfirmAndCancel(t *testing.T) {
 	menu.moveDown()
 	if got := menu.selectedConfirmAction(); got != listMenuConfirmCancel {
 		t.Fatalf("expected cancel option selection, got %q", got)
+	}
+
+	if strings.Contains(rendered, "确认删除：beta") {
+		t.Fatalf("expected delete view to drop the redundant 确认删除 line, got %q", rendered)
 	}
 
 	menu.backToActions()
